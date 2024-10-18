@@ -1,35 +1,36 @@
 #!/bin/bash
 
-# Zip format compliance
-TOTAL_FILES=0
-TOTAL_DIRS=0
-EXTRA_FILES=""
+# This is the username of the user we will create and use to test
+USERNAME="TestP4"
 
 # Kernel module correctness
-KERNEL_MODULE_NAME="my_name"
+KERNEL_MODULE_NAME="producer_consumer"
 KERNEL_MODULE_ERR=""
-KERNEL_MODULE_MSG=""
 KERNEL_MODULE_PTS=0
-KERNEL_MODULE_TOTAL=50
+KERNEL_MODULE_TOTAL=2500
 
-# System call correctness
-SYSCALL_ERR=""
-SYSCALL_MSG=""
-SYSCALL_PTS=0
-SYSCALL_TOTAL=50
+# Function to check if comm output is empty and print "None" if so
+check_output() {
+    output="$1"
+    if [ -z "$output" ]; then
+        echo "None"
+    else
+        echo "$output"
+    fi
+}
 
-# Resubmission correctness
-RESUBMIT_ERR=""
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
+function arraydiff() {
+   awk 'BEGIN{RS=ORS=" "}
+        {NR==FNR?a[$0]++:a[$0]--}
+        END{for(k in a)if(a[k])print k}' <(echo -n "${!1}") <(echo -n "${!2}")
+}
 
 check_file ()
 {
     local file_name=$(realpath "$1" 2>/dev/null)
 
     if [ -e ${file_name} ]; then
-        let TOTAL_FILES=TOTAL_FILES+1
-        echo "[log]: - file ${file_name} found"
+        echo "[log]: ─ file ${file_name} found"
         return 0
     else
         return 1
@@ -41,72 +42,174 @@ check_dir ()
     local dir_name=$(realpath "$1" 2>/dev/null)
 
     if [ -d ${dir_name} ]; then
-        let TOTAL_DIRS=TOTAL_DIRS+1
-        echo "[log]: - directory ${dir_name} found"
+        echo "[log]: ─ directory ${dir_name} found"
         return 0
     else
         return 1
     fi
 }
 
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
 compile_module ()
 {
-    pushd "kernel_module" 1>/dev/null
     make_err=$(make 2>&1 1>/dev/null)
 
     if [ $? -ne 0 ] ; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-50 points) Failed to compile your kernel module: ${make_err}"
-        popd 1>/dev/null
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Failed to compile your kernel module: ${make_err}"
         return 1
     fi
 
-    echo "[log]: - Compiled successfully"
-    popd 1>/dev/null
+    echo "[log]: ─ Compiled successfully"
     return 0
 }
 
 load_module_with_params ()
 {
-    pushd "kernel_module" 1>/dev/null
+    local prod=$1
+    local cons=$2
+    local size=$3
+    local uid=$4
 
     # Check to make sure kernel object exists
     if [ ! -e "${KERNEL_MODULE_NAME}.ko" ]; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-20 points) Failed to find your kernel object ${KERNEL_MODULE_NAME}.ko"
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Failed to find your kernel object ${KERNEL_MODULE_NAME}.ko"
         popd 1>/dev/null
         return 1
     fi
 
     # Insert kernel module - check exit code
     sudo dmesg -C
-    sudo insmod "${KERNEL_MODULE_NAME}.ko" charParameter="Fall" intParameter=2024
+    sudo insmod "${KERNEL_MODULE_NAME}.ko" prod=${prod} cons=${cons} size=${size} uid=${uid}
     if [ $? -ne 0 ]; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-20 points) Insmod exitted with non-zero return code"
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Insmod exitted with non-zero return code"
         popd 1>/dev/null
         return 1
     fi
 
     # Check lsmod to make sure module is loaded
     if ! lsmod | grep -q "^${KERNEL_MODULE_NAME}"; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-20 points) Kernel module does not appear in lsmod"
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Kernel module does not appear in lsmod"
         return 1
     fi
 
-    popd 1>/dev/null
     return 0
 }
 
-check_module_output ()
+check_threads ()
 {
-    local output=`sudo dmesg`
-    if ! echo ${output} | grep -E "$1" 1>/dev/null; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-20 points) Incorrect output: ${output}"
-        echo "[log]: - Output incorrect: ${output}"
+    local prod=$1
+    local cons=$2
+    local points=$3
+
+    # Check for producers
+    local count=$(sudo ps aux | grep "Producer-" | wc -l)
+    let count=count-1
+
+    if [ "${count}" -ne "${prod}" ]; then
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Found ${count} producer threads, expected ${prod} (-${points} points)"
         return 1
     fi
 
+    # Check for consumers
+    local count=$(sudo ps aux | grep "Consumer-" | wc -l)
+    let count=count-1
+
+    if [ "${count}" -ne "${cons}" ]; then
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Found ${count} consumer threads, expected ${cons} (-${points} points)"
+        return 1
+    fi
+
+    # All is good
     return 0
+}
+
+start_processes ()
+{
+    local regular=$1
+    local zombies=$2
+
+    for ((i=0; i<regular; i++)); do
+        sudo -u "$USERNAME" bash -c "procgen regular" 2>/dev/null &
+    done
+
+    for ((i=0; i<zombies; i++)); do
+        #sudo -u "$USERNAME" bash -c "procgen zombie" 2>/dev/null &
+	sudo -u "$USERNAME" bash -c "procgen zombie" 2>&1 | sudo tee -a /home/$USERNAME/zombies.txt > /dev/null &
+    done
+}
+
+compare_pids ()
+{
+    local status=0
+    local final=0
+
+    local prod=$1
+    local cons=$2
+    local regular=$3
+    local zombies=$4
+
+    # Base is short for "baseline"
+    local base_regular=$5
+    #local base_ppid_zombies=$6
+    local zombie_pids=$6
+
+    local num_zombies_killed=0
+    local num_innocent_alive=0
+
+    pattern="has consumed a zombie process with pid [0-9]+ and parent pid [0-9]+" 
+    local pids_killed=($(sudo dmesg | grep -E "$pattern" | awk '{ print $(NF-4)}' | sort))
+    local regular_pids_alive=($(ps -u "$USERNAME" -f | grep -E "procgen regular" | awk '{ print $2 }' | sort | uniq))
+    local zombie_pids_alive=($(ps -u "$USERNAME" -f | grep -E "procgen" | grep -E "defunct" | awk '{ print $2 }' | sort | uniq))
+
+    # Check killed zombies
+    local zombie_pids_alive_len=$(echo "${zombie_pids_alive[*]}" | wc -w)
+    if [[ "$zombie_pids_alive_len" -ne 0 ]]; then
+        echo "[log]: ┬ Your kernel module did not properly handle all zombie processes:"
+	    echo "[log]: ├─ ($zombie_pids_alive_len/$zombies) zombie processes not cleaned."
+	    echo "[log]: └─ Kindly look into these pids: ${zombie_pids_alive[*]}"
+
+        local zombie_pids_len=$(echo "${zombie_pids_alive[*]}" | wc -w)
+        diff=($(arraydiff zombie_pid[@] zombie_pids_alive[@]))
+        local diff_len=$(echo "${diff[*]}" | wc -w)
+        local score=$(((zombie_pids_len - diff_len) * 2000 / zombie_pids_len))
+        let final=final+score
+
+        local deduct_big=$((2000-score))
+        local deduct=$(echo "scale=2; ${deduct_big} / 100" | bc)
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Zombie processese handled improperly (-${deduct} points)"
+        let status=1
+    else
+        echo "[log]: ─ All zombies were cleaned"
+        let final=final+2000
+    fi
+
+    # Check alive regular processes
+    local base_regular_len=$(echo "${base_regular[*]}" | wc -w)
+    if [ "${base_regular[*]}" != "${regular_pids_alive[*]}" ]; then
+        diff=($(arraydiff base_regular[@] regular_pids_alive[@]))
+        echo "[log]: ┬ Your kernel module did not properly handle all regular processes:"
+        echo "[log]: ├─ ($(echo '$diff' | wc -w)/$base_regular_len) regular processes incorrectly killed."
+        echo "       └─ Kindly look into the following pids: ${diff[*]}"
+
+        local base_regular_len=$(echo "${base_regular[*]}" | wc -w)
+        local diff_len=$(echo "${diff[*]}" | wc -w)
+        local score=$(((base_regular_len - diff_len) * 2000 / base_regular_len))
+
+        local deduct_big=$((2000-score))
+        local deduct=$(echo "scale=2; ${deduct_big} / 100" | bc)
+        let final=final-deduct_big
+
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - Regular processese handled improperly (-${deduct} points)"
+        let status=1
+    else
+        echo "[log]: ─ None of the regular processes were killed"
+    fi 
+
+    if [ "${final}" -lt 0 ]; then
+        let final=0
+    fi
+    let KERNEL_MODULE_PTS=KERNEL_MODULE_PTS+final
+
+    return ${status}
 }
 
 unload_module ()
@@ -115,154 +218,10 @@ unload_module ()
 
     # Checking for successful module removal
     if lsmod | grep -q "^${KERNEL_MODULE_NAME}"; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-10 points) Failed to unload kernel module"
-        echo "[log]: - Failed to unload kernel module"
+        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n ─ Failed to unload kernel module"
+        echo "[log]: ─ Failed to unload kernel module"
         return 1
     fi
 
     return 0
-}
-
-# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #
-
-check_kernel_module ()
-{
-    local STATUS=0
-
-    # Step 1: Check directory - stop if failed
-    echo "[log]: Look for kernel_module directory"
-    if ! check_dir "kernel_module"; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-50 points) Failed to find kernel_module directory"
-        return 1
-    fi
-
-    # Step 2: Check Makefile - stop if failed
-    echo "[log]: Look for Makefile"
-    if ! check_file "kernel_module/Makefile"; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-50 points) Failed to find your Makefile"
-        return 1
-    fi
-
-    # Step 3: Check my_name.c - stop if failed
-    echo "[log]: Look for source file (my_name.c)"
-    if ! check_file "kernel_module/my_name.c"; then
-        KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}\n - (-50 points) Failed to find your my_name.c source file"
-        return 1
-    fi
-
-    # Step 4: Compile the kernel module - stop if failed
-    echo "[log]: Compile the kernel module"
-    if ! compile_module; then
-        return 1
-    fi
-
-    # Step 5: Load the kernel module - stop if failed
-    echo "[log]: Load the kernel module"
-    if ! load_module_with_params; then
-        return 1
-    else
-        echo "[log]: - Loaded successfully"
-        let KERNEL_MODULE_PTS=KERNEL_MODULE_PTS+20
-    fi
-
-    # Step 6: Check output
-    echo "[log]: Check dmesg output"
-    if ! check_module_output "Hello, I am .*, a student of CSE330 Fall 2024"; then
-        let STATUS=1
-    else
-        echo "[log]: - Output is correct"
-        let KERNEL_MODULE_PTS=KERNEL_MODULE_PTS+20
-    fi
-
-    # Step 7: Unload module
-    echo "[log]: Unload the kernel module"
-    if ! unload_module; then
-        let STATUS=1
-    else
-        echo "[log]: - Kernel module unloaded sucessfully"
-        let KERNEL_MODULE_PTS=KERNEL_MODULE_PTS+10
-    fi
-
-    return $STATUS
-}
-
-check_system_call ()
-{
-    # Step 1: Check directory - stop if failed
-    echo "[log]: Look for kernel_syscall directory"
-    if ! check_dir "kernel_syscall"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find kernel_syscall directory"
-        return 1
-    fi
-
-    # Step 2: Check Makefile - stop if failed
-    echo "[log]: Look for Makefile"
-    if ! check_file "kernel_syscall/Makefile"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find your Makefile"
-        return 1
-    fi
-
-    # Step 3: Check my_syscall.c - stop if failed
-    echo "[log]: Look for source file (my_syscall.c)"
-    if ! check_file "kernel_syscall/my_syscall.c"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find your my_syscall.c source file"
-        return 1
-    fi
-
-    # Step 4: Check directory - stop if failed
-    echo "[log]: Look for userspace directory"
-    if ! check_dir "userspace"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find userspace directory"
-        return 1
-    fi
-
-    # Step 5: Check syscall_in_userspace_test.c - stop if failed
-    echo "[log]: Look for source file (syscall_in_userspace_test.c)"
-    if ! check_file "userspace/syscall_in_userspace_test.c"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find your userspace code"
-        return 1
-    fi
-
-    # Step 6: Check directory - stop if failed
-    echo "[log]: Look for screenshots directory"
-    if ! check_dir "screenshots"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find screenshots directory"
-        return 1
-    fi
-
-    # Step 7: Check syscall_output.png - stop if failed
-    echo "[log]: Look for syscall_output screenshot"
-    if ! check_file "screenshots/syscall_output.*"; then
-        SYSCALL_ERR="${SYSCALL_ERR}\n - (-50 points) Failed to find your syscall_output screenshot"
-        return 1
-    else
-        echo "[log]: - Screenshot found"
-    fi
-
-    let SYSCALL_PTS=SYSCALL_PTS+50
-    return 0
-}
-
-check_resubmission ()
-{
-    # Step 1: Check directory - stop if failed
-    echo "[log]: Look for Project1 directory"
-    if ! check_dir "Project1"; then
-        RESUBMIT_ERR="${RESUBMIT_ERR}\n - Failed to find Project1 directory"
-        return 1
-    fi
-
-    # Step 2: Check uname.png/uname.jpg - stop if failed
-    echo "[log]: Look for uname.png/uname.jpg"
-    if ! check_file "Project1/uname*"; then
-        RESUBMIT_ERR="${RESUBMIT_ERR}\n - Failed to find uname screenshot"
-        return 1
-    fi
-
-    # Step 3: Check lsb_release.png/lsb_release.jpg - stop if failed
-    echo "[log]: Look for lsb_release.png/lsb_release.jpg"
-    if ! check_file "Project1/lsb_release*"; then
-        RESUBMIT_ERR="${RESUBMIT_ERR}\n - Failed to find lsb_release screenshot"
-        return 1
-    fi
 }
