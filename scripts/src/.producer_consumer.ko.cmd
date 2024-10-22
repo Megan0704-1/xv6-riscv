@@ -1,1 +1,0 @@
-savedcmd_/home/mkuo/CSE330/project4/scripts/src/producer_consumer.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/mkuo/CSE330/project4/scripts/src/producer_consumer.ko /home/mkuo/CSE330/project4/scripts/src/producer_consumer.o /home/mkuo/CSE330/project4/scripts/src/producer_consumer.mod.o
