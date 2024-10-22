@@ -142,8 +142,6 @@ static int zombie_killer(void* data) {
         mutex_unlock(&bb.lock);
         wake_up_interruptible(&bb.producer_queue);
 
-        break;
-
         kill_zombie(zombie);
         put_task_struct(zombie); // decrement task reference count
     }
