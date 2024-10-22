@@ -1,0 +1,76 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/home/mkuo/CSE330/project4/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+BUFFERSIZE	sample.c	/^#define BUFFERSIZE /;"	d	file:
+DEFAULT_BUFFER_SIZE	test.c	/^#define DEFAULT_BUFFER_SIZE /;"	d	file:
+DEFAULT_BUFFER_SIZE	zombie.c	/^#define DEFAULT_BUFFER_SIZE /;"	d	file:
+DEFAULT_CONS_SIZE	test.c	/^#define DEFAULT_CONS_SIZE /;"	d	file:
+DEFAULT_CONS_SIZE	zombie.c	/^#define DEFAULT_CONS_SIZE /;"	d	file:
+DEFAULT_PROD_SIZE	test.c	/^#define DEFAULT_PROD_SIZE /;"	d	file:
+DEFAULT_PROD_SIZE	zombie.c	/^#define DEFAULT_PROD_SIZE /;"	d	file:
+DEFAULT_UID	test.c	/^#define DEFAULT_UID /;"	d	file:
+DEFAULT_UID	zombie.c	/^#define DEFAULT_UID /;"	d	file:
+Difference between UID and PID in linux kernel programming	README.md	/^## Difference between UID and PID in linux kernel programming$/;"	s
+Example	README.md	/^### Example$/;"	S	section:Difference between UID and PID in linux kernel programming
+Logic	README.md	/^### Logic$/;"	S	section:What is process credentials?
+MAX_BUFFER_SIZE	test.c	/^#define MAX_BUFFER_SIZE /;"	d	file:
+MAX_BUFFER_SIZE	zombie.c	/^#define MAX_BUFFER_SIZE /;"	d	file:
+Synchronization	README.md	/^### Synchronization$/;"	S	section:What is process credentials?
+What is PID, process ID?	README.md	/^### What is PID, process ID?$/;"	S	section:Difference between UID and PID in linux kernel programming
+What is UID, user ID?	README.md	/^### What is UID, user ID?$/;"	S	section:Difference between UID and PID in linux kernel programming
+What is process credentials?	README.md	/^## What is process credentials?$/;"	s
+__anon1dda1bf60108	test.c	/^typedef struct {$/;"	s	file:
+__anon78fe0a9c0108	zombie.c	/^typedef struct {$/;"	s	file:
+all	Makefile	/^all:$/;"	t
+bb	test.c	/^} bb;$/;"	t	typeref:struct:__anon1dda1bf60108	file:
+bb	zombie.c	/^bounded_buffer bb;$/;"	v	typeref:typename:bounded_buffer
+bounded_buffer	zombie.c	/^} bounded_buffer;$/;"	t	typeref:struct:__anon78fe0a9c0108	file:
+buffer	sample.c	/^static int buffer[BUFFERSIZE];$/;"	v	typeref:typename:int[]	file:
+buffer	test.c	/^    struct task_struct **buffer;$/;"	m	struct:__anon1dda1bf60108	typeref:struct:task_struct **	file:
+buffer	zombie.c	/^    struct task_struct **buffer;$/;"	m	struct:__anon78fe0a9c0108	typeref:struct:task_struct **	file:
+buffer_init	zombie.c	/^void buffer_init(int s) {$/;"	f	typeref:typename:void
+capacity	zombie.c	/^    int capacity;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:int	file:
+clean	Makefile	/^clean:$/;"	t
+cons	test.c	/^static int cons=DEFAULT_CONS_SIZE;$/;"	v	typeref:typename:int	file:
+cons	zombie.c	/^static int cons=DEFAULT_CONS_SIZE;$/;"	v	typeref:typename:int	file:
+cons_idx	test.c	/^    int cons_idx;$/;"	m	struct:__anon1dda1bf60108	typeref:typename:int	file:
+cons_idx	zombie.c	/^    int cons_idx;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:int	file:
+consumer_func	sample.c	/^static int consumer_func(void* data) {$/;"	f	typeref:typename:int	file:
+consumer_queue	zombie.c	/^    wait_queue_head_t consumer_queue;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:wait_queue_head_t	file:
+consumer_thread	sample.c	/^static struct task_struct *consumer_thread;$/;"	v	typeref:struct:task_struct *	file:
+consumers	zombie.c	/^static struct task_struct **consumers;$/;"	v	typeref:struct:task_struct **	file:
+count	sample.c	/^static int in=0, out=0, count=0;$/;"	v	typeref:typename:int	file:
+count_process_exit	test.c	/^static void __exit count_process_exit(void) {$/;"	f	typeref:typename:void __exit	file:
+count_process_init	test.c	/^static int __init count_process_init(void) {$/;"	f	typeref:typename:int __init	file:
+in	sample.c	/^static int in=0, out=0, count=0;$/;"	v	typeref:typename:int	file:
+lock	zombie.c	/^    struct mutex lock;$/;"	m	struct:__anon78fe0a9c0108	typeref:struct:mutex	file:
+mutex	test.c	/^    struct mutex mutex;$/;"	m	struct:__anon1dda1bf60108	typeref:struct:mutex	file:
+out	sample.c	/^static int in=0, out=0, count=0;$/;"	v	typeref:typename:int	file:
+prod	test.c	/^static int prod=DEFAULT_PROD_SIZE;$/;"	v	typeref:typename:int	file:
+prod	zombie.c	/^static int prod=DEFAULT_PROD_SIZE;$/;"	v	typeref:typename:int	file:
+prod_idx	test.c	/^    int prod_idx;$/;"	m	struct:__anon1dda1bf60108	typeref:typename:int	file:
+prod_idx	zombie.c	/^    int prod_idx;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:int	file:
+producer_func	sample.c	/^static int producer_func(void *data) {$/;"	f	typeref:typename:int	file:
+producer_queue	zombie.c	/^    wait_queue_head_t producer_queue;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:wait_queue_head_t	file:
+producer_thread	sample.c	/^static struct task_struct *producer_thread;$/;"	v	typeref:struct:task_struct *	file:
+producers	zombie.c	/^static struct task_struct **producers;$/;"	v	typeref:struct:task_struct **	file:
+shared_buffer	test.c	/^static bb shared_buffer;$/;"	v	typeref:typename:bb	file:
+size	test.c	/^static int size=DEFAULT_BUFFER_SIZE;$/;"	v	typeref:typename:int	file:
+size	zombie.c	/^static int size=DEFAULT_BUFFER_SIZE;$/;"	v	typeref:typename:int	file:
+thread_exit	sample.c	/^static void __exit thread_exit(void) {$/;"	f	typeref:typename:void __exit	file:
+thread_init	sample.c	/^staic int __init thread_init(void) {$/;"	f	typeref:typename:staic int __init
+uid	test.c	/^static int uid=DEFAULT_UID;$/;"	v	typeref:typename:int	file:
+uid	zombie.c	/^static uid_t uid=DEFAULT_UID;$/;"	v	typeref:typename:uid_t	file:
+zombie_cnt	zombie.c	/^    int zombie_cnt;$/;"	m	struct:__anon78fe0a9c0108	typeref:typename:int	file:
+zombie_count	test.c	/^    int zombie_count;$/;"	m	struct:__anon1dda1bf60108	typeref:typename:int	file:
+zombie_generator	zombie.c	/^static int zombie_generator(void* data) {$/;"	f	typeref:typename:int	file:
+zombie_module	zombie.c	/^static int __init zombie_module(void) {$/;"	f	typeref:typename:int __init	file:
+zombie_producer_thread	test.c	/^static int zombie_producer_thread(void* data) {$/;"	f	typeref:typename:int	file:

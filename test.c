@@ -36,7 +36,7 @@ MODULE_PARM_DESC(uid, "The UID of the zombie spreader.");
 // bounded buffer struct
 typedef struct {
     // dynamic allocated shared buffer
-    int *buffer;
+    struct task_struct **buffer;
 
     // number of items in the buffer
     int zombie_count;
@@ -44,20 +44,20 @@ typedef struct {
     int cons_idx;
 
     // lock to protect buffer.
-    DEFINE_MUTEX(buffer_mutex);
+    struct mutex mutex;
 
     DECLARE_WAIT_QUEUE_HEAD(producer_wait);
     DECLARE_WAIT_QUEUE_HEAD(consumer_wait);
 } bb;
 
-// global bounded buffer pointer (bbp)
-bb *bbp;
+// global bounded buffer
+static bb shared_buffer;
 
-void zombie_producer_thread(void) {
+static int zombie_producer_thread(void* data) {
     struct task_struct *p;
 
     const char* producer_name = current->comm;
-    for_each_process(p) {
+   for_each_process(p) {
         // check if the process belongs to param uid
         if(p->cred->uid.val != uid) continue;
 
@@ -67,25 +67,25 @@ void zombie_producer_thread(void) {
             // 1. buffer size full -> put producer to wait queue
             // 2. buffer size empty -> increment zombie count
 
-            if(mutex_lock_interruptible(&(bbp->buffer_mutex))) {
+            if(mutex_lock_interruptible(&shared_buffer.mutex)) {
                 // acquire lock failed
                 pr_info("Process interrupted while waiting for mutex.\n");
                 return -ERESTARTSYS;
             }
 
-            while(bbp->zombie_count == size) {
+            while(shared_buffer.zombie_count == size) {
                 pr_info("Buffer full. Put process to wait");
 
-                mutex_unlock(&(bbp->buffer_mutex));
+                mutex_unlock(&shared_buffer.mutex);
 
                 // sleep until condition is true
-                if(wait_event_interruptible(bbp->producer_wait, bbp->zombie_count < size)) {
+                if(wait_event_interruptible(shared_buffer.producer_wait, shared_buffer.zombie_count < size)) {
                     pr_info("Process interrupted while waiting for buffer space.\n");
                     return -ERESTARTSYS;
                 }
 
                 // reacquire mutex when process is awake
-                if(mutex_lock_interruptible(&(bbp->buffer_mutex))) {
+                if(mutex_lock_interruptible(&shared_buffer.mutex)) {
                     pr_info("Process interrrupted while re-acquiring mutex lock.\n");
                     return -ERESTARTSYS;
                 }
@@ -96,18 +96,21 @@ void zombie_producer_thread(void) {
             int ppid = task->real_parent->pid;
             pr_info("[%s] has produced a zombie process with pid %d and parent pid %d", producer_name, pid, ppid);
 
-            bbp->buffer[bbp->prod_idx] = task;
-            bbp->prod_idx = (bbp->prod_idx+1) % size;
-            bbp->zombie_count++;
+            shared_buffer.buffer[shared_buffer.prod_idx] = task;
+            shared_buffer.prod_idx = (shared_buffer.prod_idx+1) % size;
+            shared_buffer.zombie_count++;
 
-            wake_up(&(bbp->producer_wait));
-            mutex_unlock(&(bbp->buffer_mutex));            
+            wake_up(&shared_buffer.consumer_wait);
+            mutex_unlock(&shared_buffer.mutex);
         }
     }
 
 }
 
 static int __init count_process_init(void) {
+
+    DEFINE_MUTEX(mutex);
+
     pr_info("Initializing module with buffer size: %u\n", size);
 
     // buffer size check
@@ -116,17 +119,17 @@ static int __init count_process_init(void) {
         return -EINVAL; // invalid
     }
 
-    bbp->buffer = kmalloc(size, GFP_KERNEL);
-    if(!bbp->buffer) {
+    shared_buffer.buffer = kmalloc(size * sizeof(struct task_struct*), GFP_KERNEL);
+    if(!shared_buffer.buffer) {
         pr_err("Failed to allocate buffer of size %u.\n", size);
         return -ENOMEM;
     }
 
-    memset(bbp->buffer, 0, size);
+    memset(shared_buffer.buffer, 0, size);
 
-    mutex_init(&(bbp->buffer_mutex));
+    mutex_init(shared_buffer.mutex);
 
-    bbp->zombie_count=0; bbp->prod_idx=0; bbp->cons_idx=0;
+    shared_buffer.zombie_count=0; shared_buffer.prod_idx=0; shared_buffer.cons_idx=0;
 
     struct task_struct *producer_thread = kthread_run(zombie_producer_thread, NULL, "Producer-1");
     
@@ -136,8 +139,8 @@ static int __init count_process_init(void) {
 
 static void __exit count_process_exit(void) {
 
-    if(bbp->buffer) {
-        kfree(bbp->buffer);
+    if(shared_buffer.buffer) {
+        kfree(shared_buffer.buffer);
         pr_info("Buffer freed.\n");
     }
 

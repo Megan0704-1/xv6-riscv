@@ -1,0 +1,1 @@
+savedcmd_/home/mkuo/CSE330/project4/zombie.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/mkuo/CSE330/project4/zombie.ko /home/mkuo/CSE330/project4/zombie.o /home/mkuo/CSE330/project4/zombie.mod.o

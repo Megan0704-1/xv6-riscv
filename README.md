@@ -22,3 +22,15 @@ PID 1234 is the identifier for the instance of chrome, and UID 1000 is the owner
 
 ## What is process credentials?
 Process 
+
+### Synchronization
+- Producer
+    - Acquire lock before accessing the buffer.
+    - Use `wait_event_interruptible` on `producer` queue if buffer is full.
+- Consumer
+    - Acquire lock before popping from the buffer.
+    - Use `wait_event_interruptible` on `consumer` queue if buffer is empty.
+
+### Logic
+- Producer
+    - Scans the process list (task_struct) for zombie processes owned by given uid and inserts them to the shared buffer.
