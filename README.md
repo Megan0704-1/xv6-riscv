@@ -34,3 +34,7 @@ Process
 ### Logic
 - Producer
     - Scans the process list (task_struct) for zombie processes owned by given uid and inserts them to the shared buffer.
+- Consumer
+    - Get the zombie out from the shared buffer and call kill_zombie function to remove it.
+- Kill_zombie function
+    - Checks if the zombie process's parent is init process, if not, it re-parents the task to the init process, removes it from the current parent's child list and signals the init process to handle the task.
