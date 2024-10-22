@@ -11,6 +11,7 @@
 #define DEFAULT_PROD_SIZE 1
 #define DEFAULT_CONS_SIZE 2
 #define DEFAULT_UID 1000
+#define THREAD_STOP_CHECK if(kthread_should_stop()) {rcu_read_unlock(); return 0;}
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Megan Kuo");
@@ -90,21 +91,21 @@ static int zombie_generator(void* data) {
 
             mutex_lock(&bb.lock);
 
-            if(bb.zombie_cnt == bb.capacity) {
+            while(bb.zombie_cnt == bb.capacity) {
                 mutex_unlock(&bb.lock); // release the lock
-                wait_event_interruptible(bb.producer_queue, bb.zombie_cnt < bb.capacity || kthread_should_stop());
+                THREAD_STOP_CHECK;
 
-                if(kthread_should_stop()) {
-                    rcu_read_unlock();
-                    return 0;
-                }
+                wait_event_interruptible(bb.producer_queue, bb.zombie_cnt < bb.capacity || kthread_should_stop());
+                THREAD_STOP_CHECK;
 
                 mutex_lock(&bb.lock); // reacquire the lock after waking up
+
+                continue;
             }
 
             get_task_struct(p); // increment task reference count
             bb.buffer[bb.prod_idx] = p;
-            bb.prod_idx = (bb.prod_idx+1 % bb.capacity);
+            bb.prod_idx = ((bb.prod_idx+1) % bb.capacity);
             bb.zombie_cnt++;
 
             mutex_unlock(&bb.lock);
@@ -120,28 +121,28 @@ static int zombie_killer(void* data) {
     struct task_struct *zombie;
 
     while(!kthread_should_stop()) {
-        while(1) {
+        mutex_lock(&bb.lock);
+
+        while(bb.zombie_cnt == 0) {
+            mutex_unlock(&bb.lock);
+            THREAD_STOP_CHECK;
+
+            wait_event_interruptible(bb.consumer_queue, bb.zombie_cnt>0 || kthread_should_stop());
+            THREAD_STOP_CHECK;
+
             mutex_lock(&bb.lock);
 
-            if(bb.zombie_cnt == 0) {
-                mutex_unlock(&bb.lock);
-
-                wait_event_interruptible(bb.consumer_queue, bb.zombie_cnt>0 || kthread_should_stop());
-
-                if(kthread_should_stop()) return 0;
-
-                continue;
-            }
-
-            zombie = bb.buffer[bb.cons_idx];
-            bb.cons_idx = (bb.cons_idx+1) % bb.capacity;
-            bb.zombie_cnt--;
-
-            mutex_unlock(&bb.lock);
-            wake_up_interruptible(&bb.producer_queue);
-
-            break;
+            continue;
         }
+
+        zombie = bb.buffer[bb.cons_idx];
+        bb.cons_idx = ((bb.cons_idx+1) % bb.capacity);
+        bb.zombie_cnt--;
+
+        mutex_unlock(&bb.lock);
+        wake_up_interruptible(&bb.producer_queue);
+
+        break;
 
         kill_zombie(zombie);
         put_task_struct(zombie); // decrement task reference count
@@ -168,14 +169,24 @@ static int __init zombie_module(void) {
 
 static void __exit zombie_exit(void) {
     for(int i=0; i<prod; ++i) {
-        kthread_stop(producers[i]);
+        if(producers[i]) kthread_stop(producers[i]);
     }
     for(int i=0; i<cons; ++i) {
-        kthread_stop(consumers[i]);
+        if(consumers[i]) kthread_stop(consumers[i]);
     }
-    if(bb.buffer) {
-        kfree(bb.buffer);
+
+    mutex_lock(&bb.lock);
+    while(bb.zombie_cnt>0) {
+        struct task_struct *zombie = bb.buffer[bb.cons_idx];
+        bb.cons_idx = (bb.cons_idx+1) % bb.capacity;
+        bb.zombie_cnt--;
+        put_task_struct(zombie);
     }
+    mutex_unlock(&bb.lock);
+
+    if(bb.buffer) kfree(bb.buffer);
+    if(producers) kfree(producers);
+    if(consumers) kfree(consumers);
 
     pr_info("Leaving zombie module.\n");
 }
