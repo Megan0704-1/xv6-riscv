@@ -5,7 +5,6 @@
 #include <linux/mutex.h>
 #include <linux/wait.h>
 #include <linux/sched.h>
-#include <linux/sched/signal.h>
 
 #define MAX_BUFFER_SIZE 65536
 #define DEFAULT_BUFFER_SIZE 1024
@@ -77,15 +76,13 @@ void kill_zombie(struct task_struct* zombie) {
     get_task_struct(parent);
     rcu_read_unlock();
 
-    kill_pid(parent->thread_pid, SIGKILL, 0);
-
+    // SIGCHLD notifies the parent that its child has exited, the parent should call wait to clean up the zombie
+    send_sig_info(SIGCHLD, SEND_SIG_NOINFO, parent);
     put_task_struct(parent);
 }
 
 static int zombie_generator(void* data) {
     struct task_struct* p;
-    struct task_struct *task = current;
-    int pid = task->pid, ppid = task->real_parent->pid;
 
     while(!kthread_should_stop()) {
         rcu_read_lock(); // pre-thread lock
@@ -113,8 +110,6 @@ static int zombie_generator(void* data) {
 
             mutex_unlock(&bb.lock);
             wake_up_interruptible(&bb.consumer_queue);
-
-            pr_info("[%s] has produced a zombie process with pid %d and parent pid %d\n", task->comm, pid, ppid);
         }
         rcu_read_unlock();
         msleep(250);
@@ -124,8 +119,6 @@ static int zombie_generator(void* data) {
 
 static int zombie_killer(void* data) {
     struct task_struct *zombie;
-    struct task_struct *task = current;
-    int pid = task->pid, ppid = task->real_parent->pid;
 
     while(!kthread_should_stop()) {
         mutex_lock(&bb.lock);
@@ -150,8 +143,6 @@ static int zombie_killer(void* data) {
         wake_up_interruptible(&bb.producer_queue);
 
         kill_zombie(zombie);
-
-        pr_info("[%s] has consumed a zombie process with pid %d and parent pid %d\n", task->comm, pid, ppid);
         put_task_struct(zombie); // decrement task reference count
     }
     return 0;
