@@ -187,7 +187,7 @@ compare_pids ()
     if [ "${base_regular[*]}" != "${regular_pids_alive[*]}" ]; then
         diff=($(arraydiff base_regular[@] regular_pids_alive[@]))
         echo "[log]: ┬ Your kernel module did not properly handle all regular processes:"
-        echo "[log]: ├─ ($(echo '$diff' | wc -w)/$base_regular_len) regular processes incorrectly killed."
+	echo "[log]: ├─ ($(echo "${diff[*]}" | wc -w)/$base_regular_len) regular processes incorrectly killed."
         echo "       └─ Kindly look into the following pids: ${diff[*]}"
 
         local base_regular_len=$(echo "${base_regular[*]}" | wc -w)
