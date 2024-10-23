@@ -47,8 +47,8 @@ typedef struct {
     int cons_idx;
 
     struct mutex lock;
-    wait_queue_head_t producer_queue;
-    wait_queue_head_t consumer_queue;
+    wait_queue_head_t producer_queue; // put producer to wait if found one zombie but buffer is full
+    wait_queue_head_t consumer_queue; // put consumer to wait if no zombie is in the buffer
 } bounded_buffer;
 
 // global variable
@@ -69,6 +69,7 @@ void buffer_init(int s) {
     init_waitqueue_head(&bb.consumer_queue);
 }
 
+// helper function for killing zombie's parent
 void kill_zombie(struct task_struct* zombie) {
     struct task_struct* parent;
 
@@ -82,15 +83,17 @@ void kill_zombie(struct task_struct* zombie) {
     put_task_struct(parent);
 }
 
+// producer thread
 static int zombie_generator(void* data) {
     struct task_struct* p;
-    struct task_struct *task = current;
-    int pid = task->pid, ppid = task->real_parent->pid;
 
     while(!kthread_should_stop()) {
-        rcu_read_lock(); // pre-thread lock
+        rcu_read_lock(); // rcu lock for concurrency safety
+        struct task_struct *task = current;
+        int pid = task->pid, ppid = task->real_parent->pid;
+
         for_each_process(p) {
-            if((p->real_cred->uid.val != uid) || !(p->exit_state & EXIT_ZOMBIE)) continue;
+            if((p->real_cred->uid.val != uid) || !(p->exit_state & EXIT_ZOMBIE)) continue; /* if a process does not belong to uid or is not a zombie, skip it. */
 
             mutex_lock(&bb.lock);
 
@@ -122,10 +125,9 @@ static int zombie_generator(void* data) {
     return 0;
 }
 
+// consumer thread
 static int zombie_killer(void* data) {
     struct task_struct *zombie;
-    struct task_struct *task = current;
-    int pid = task->pid, ppid = task->real_parent->pid;
 
     while(!kthread_should_stop()) {
         mutex_lock(&bb.lock);
@@ -148,6 +150,12 @@ static int zombie_killer(void* data) {
 
         mutex_unlock(&bb.lock);
         wake_up_interruptible(&bb.producer_queue);
+
+        rcu_read_lock();
+        get_task_struct(zombie);
+        struct task_struct *task = current;
+        int pid = task->pid, ppid = task->real_parent->pid;
+        rcu_read_unlock();
 
         kill_zombie(zombie);
 
