@@ -40,8 +40,15 @@ check_kernel_module ()
     echo "[log]: Starting ${regular} normal processes"
     start_processes ${regular} 0 &
 
-    sleep 15 
+    # sleep 15 
     local base_regular=($(ps -u "$USERNAME" -f | grep -E "procgen regular" | awk '{ print $2 }' | sort | uniq))
+    local cur_regular_count="${#base_regular[@]}"
+    while [ "$cur_regular_count" -ne "$regular" ]; do
+        sleep 0.5
+        local base_regular=($(ps -u "$USERNAME" -f | grep -E "procgen regular" | awk '{ print $2 }' | sort | uniq))
+        local cur_regular_count="${#base_regular[@]}"
+        echo $cur_regular_count
+    done
 
 	# Step 5: Insert the kernel module - stop if failed
     echo "[log]: Load the kernel module"
