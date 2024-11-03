@@ -1,14 +1,12 @@
-CXX = gcc
-CXXFLAGS = -Wall -Wextra -g
-TARGET = procgen
-SRC = procgen.c
+CC = gcc
+CFLAGS = -std=c99
 
-all: $(TARGET)
+.PHONY: all
+all: testp5
 
-$(TARGET): $(SRC)
-	$(CXX) $(CXXFLAGS) $(SRC) -o $(TARGET)
+testp5: testp5.c
+	$(CC) $(CFLAGS) $^ -o $@
 
+.PHONY: clean
 clean:
-	rm -f $(TARGET)
-
-.PHONY: all clean verbose
+	-rm testp5

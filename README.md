@@ -1,77 +1,67 @@
-CSE330 Project-4 Zombie Killer
+# CSE330 Project-5 Memory Manager
 
 In this directory, there are two scripts available for students testing convenience.
 
-## [test_module.sh](https://github.com/visa-lab/CSE330-OS/blob/project-4/test_module.sh)
+## test_module.py
 
-This script can be used to test the kernel module. It will do the following when provided the directory to your
-source code, arguments to pass as the values to your module parameters, and the numbers of regular and zombie
-processes to start:
- - Note, the reason we have it take a directory to your code rather than a zip file is to ease the testing process
-during development by not requiring you to create a zip file just to test your code. This script is to be used
-specifically during development.
+Before using this script, you must compile a C source, `testp5.c` file into a binary, `testp5`. This binary
+takes a scalar value to denote how much memory to allocate. The `testp5` program will allocate a large chunk
+of memory on the heap and then access each page to bring it present into memory. Since the memory allocation
+is large, some of the pages accessed will be moved to disk. This binary is invoked by `test_module.py` so you
+do not need to run it yourself but you are welcome to do so.
+- Note, you ***MUST*** configure your virtual machine to use 4GB of memory and use 4 for the value of the scalar. This
+is to ensure that the test script will be able to generate a sufficient amount of swapped pages from which various
+virtual addresses will be provided to your kernel module.
 
-It does the following, in this sequence:
-- We will check for all files we expect to see
-- We will compile your kernel module (and abort if the compilation fails - ***0 points***)
-- We will launch the provided number of regular processes to run in the background
-- We will load your kernel module (and abort if the compilation fails - ***0 points***)
-- Zombie processes start in batches throughout runtime every few seconds
-  - The total number of zombie processes will match the number provided
-- We will check to make sure the number of kernel threads you have started is correct (***2 points possible***)
-- We will give your kernel module some time to clean up all the zombies
-- We will perform analysis on the processes which have been cleaned, and which still remain (***20 points possible***)
-- We will unload your kernel module
-- We will check to make sure all your kernel threads have stopped (***3 points possible***)
+You can compile `testp5` using the provided `Makefile` by simply running the following command:
+```bash
+make
+```
 
-Note: All processes we start will run under a user which we will create within your VM named "TestP4". Don't worry,
-the script will clean up after itself after it is done running.
+This script can be used to test the kernel module. It will do the following when provided the path to your
+compiled kernel module (i.e., a .ko file kernel object), a scalar value to denote how much memory to allocate,
+and the number of present, swapped, and invalid pages to test:
+1. We will start the `testp5` program
+2. We will wait 5 seconds to give the OS some time to move pages to swap
+3. We will test a number of random virtual addresses which lie within present pages in memory
+4. We will test a number of random virtual addresses which lie within swapped pages in memory
+5. We will test a number of random invalid virtual addresses which do not lie within any page in memory
+
+Your kernel module will be loaded and unloaded for each address tested. If for any reason the kernel module either
+fails to load or unload, the script will stop testing and you will be left only with the total points you have
+accumulated so far.
+
+Since this script reads `/var/log/kern.log` and multiple files from procfs to validate your output, it ***MUST*** be run with `sudo`.
 
 ### Usage and expected output:
 
-Usage: Replace `/path/to/code/` with the directory which has your `producer_consumer.c` and `Makefile`:
+Usage: Replace `/path/to/memory_manager.ko` with the path to your compiled kernel module:
 ```bash
-Usage: ./test_module.sh /path/to/your/submission/ <prod> <cons> <size> <regular> <zombies>
- <prod>    - the number of producer threads for the kernel module
- <cons>    - the number of consumer threads for the kernel module
- <size>    - the size of the buffer for the kernel module
- <regular> - the number of regular processes to spawn for the process generator
- <zombies> - the number of zombie processes to spawn for the process generator
+Usage: sudo ./test_module.py /path/to/memory_manager.ko <scalar> <present> <swapped> <invalid>
+ - scalar  : You MUST set your VM to use 4GB memory to ensure the test scripts can generate swap pages. Use 4 for this argument.
+ - present : The number of present addresses to test.
+ - swapped : The number of swapped addresses to test.
+ - invalid : The number of invalid addresses to test.
+This script MUST be run as root and you MUST have compiled your kernel module before running.
 ```
 
-Expected output (from test case 3):
+Expected output:
 ```
-[log]: Creating user TestP4...
-[log]: Look for Makefile
-[log]: ─ file /home/vboxuser/git/test/GTA-CSE330-Fall2024/Project4/Makefile found
-[log]: Look for source file (producer_consumer.c)
-[log]: ─ file /home/vboxuser/git/test/GTA-CSE330-Fall2024/Project4/producer_consumer.c found
-[log]: Compile the kernel module
-[log]: ─ Compiled successfully
-[log]: Starting 10 normal processes
-[log]: Load the kernel module
-[log]: ─ Loaded successfully
-[log]: Starting zombie processes ...
-[log]: ─ Total zombies spawned so far: 10/10
-[log]: Checking the counts of the running kernel threads
-[log]: ─ Found all expected threads
-[log]: We will now wait some time to give your kernel module time to cleanup
-[log]: └─ We will wait 10 seconds
-[log]: Checking the pids of all remaining processes against your output
-[log]: ─ All zombies were cleaned
-[log]: ─ None of the regular processes were killed
-[log]: ┬─ All zombies were cleaned
-[log]: └─ None of the regular processes were killed
-[log]: Unload the kernel module
-[log]: ─ Kernel module unloaded sucessfully
-[log]: Checking to make sure kthreads are terminated
-[log]: ─ All threads have been stopped
-[zombie_killer]: Passed
-[final score]: 25.00/25
-[log]: Deleting user TestP4...
+[log]: Waiting for 5 seconds to allow time for pages to be moved to swap
+[log]: Checking 100 random present pages
+[log]: - 100/100 correct
+[log]: Checking 100 random swapped pages
+[log]: - 100/100 correct
+[log]: Checking 100 random invalid pages
+[log]: - 100/100 correct
+[memory_manager]: Passed (100.0/100)
 ```
 
-## [test_zip_contents.sh](https://github.com/visa-lab/CSE330-OS/blob/project-4/test_zip_contents.sh)
+Feel free to run with any number of present, swapped, or invalid tests. This script is intended to give you the flexibility to
+test each one in isolation (i.e. if you want to check 10 addresses from pages in memory, 0 addresses from pages in swap, and
+0 invalid addresses to test one thing at a time on a smaller scale, you are able to do so).
+
+## test_zip_contents.sh
 
 This script is to be used to ensure the final submission adheres to the expected format specified in the project codument. It will do the following:
 
@@ -82,24 +72,17 @@ This script is to be used to ensure the final submission adheres to the expected
 Once the script is done running, it will inform you of the correctness of the submission by showing you anything it could not find.
 
 Usage:
-```
+```bash
 ./test_zip_contents.sh /path/to/zip/file
 ```
 
 Expected output:
 ```
 [log]: Look for directory (source_code)
-[log]: ─ file /home/vboxuser/git/test/GTA-CSE330-Fall2024/Project4/testing/unzip_1729234187/source_code found
+[log]: ─ file /home/vboxuser/git/GTA-CSE330-Fall2024/Project5/test/unzip_1730664481/source_code found
 [log]: Look for Makefile
-[log]: ─ file /home/vboxuser/git/test/GTA-CSE330-Fall2024/Project4/testing/unzip_1729234187/source_code/Makefile found
-[log]: Look for source file (producer_consumer.c)
-[log]: ─ file /home/vboxuser/git/test/GTA-CSE330-Fall2024/Project4/testing/unzip_1729234187/source_code/producer_consumer.c found
+[log]: ─ file /home/vboxuser/git/GTA-CSE330-Fall2024/Project5/test/unzip_1730664481/source_code/Makefile found
+[log]: Look for source file (memory_manager.c)
+[log]: ─ file /home/vboxuser/git/GTA-CSE330-Fall2024/Project5/test/unzip_1730664481/source_code/memory_manager.c found
 [test_zip_contents]: Passed
 ```
-
-## [utils.sh](https://github.com/visa-lab/CSE330-OS/blob/project-4/utils.sh)
-
-This script is not meant to be run directly, and only contains code that is used across both scripts mentioned above.
-- Please do not make any changes in provided test case code to pass the test cases.
-- You can use print statements in case you want to debug and understand the logic of the test code.
-- Please get in touch with the TAs if you face any issues using the test scripts.

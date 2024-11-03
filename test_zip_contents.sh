@@ -1,7 +1,28 @@
 #!/bin/bash
 
-# !!! DO NOT MOVE THIS FILE !!!
-source utils.sh
+check_file ()
+{
+    local file_name=$(realpath "$1" 2>/dev/null)
+
+    if [ -e ${file_name} ]; then
+        echo "[log]: ─ file ${file_name} found"
+        return 0
+    else
+        return 1
+    fi
+}
+
+check_dir ()
+{
+    local dir_name=$(realpath "$1" 2>/dev/null)
+
+    if [ -d ${dir_name} ]; then
+        echo "[log]: ─ directory ${dir_name} found"
+        return 0
+    else
+        return 1
+    fi
+}
 
 check_zip_content ()
 {
@@ -19,9 +40,9 @@ check_zip_content ()
         return 1
     fi
 
-    # Step 3: Check producer_consumer.c - stop if failed
-    echo "[log]: Look for source file (producer_consumer.c)"
-    if ! check_file "source_code/producer_consumer.c"; then
+    # Step 3: Check memory_manager.c - stop if failed
+    echo "[log]: Look for source file (memory_manager.c)"
+    if ! check_file "source_code/memory_manager.c"; then
         KERNEL_MODULE_ERR="${KERNEL_MODULE_ERR}"
         return 1
     fi
