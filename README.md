@@ -50,9 +50,9 @@ Expected output: (Testing 100 pages present in memory)
 [log]: Waiting for 5 seconds to allow time for pages to be moved to swap
 [log]: Checking 100 random present pages
 [log]: - 100/100 correct
-[log]: Checking 100 random swapped pages
+[log]: Checking 0 random swapped pages
 [log]: - 0/0 correct
-[log]: Checking 100 random invalid pages
+[log]: Checking 0 random invalid pages
 [log]: - 0/0 correct
 [memory_manager]: Passed (100.0/100)
 ```
