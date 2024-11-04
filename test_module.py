@@ -121,11 +121,15 @@ Error Logging and Scoring
 
 def cal_score(num_present: int, num_swapped: int, num_invalid: int):
     global num_swapped_correct, num_present_correct, num_invalid_correct
-    weight = (1 / 3)
+    total_count = num_present + num_swapped + num_invalid
 
-    score = ((num_swapped_correct / num_swapped) * weight) \
-        + ((num_present_correct / num_present) * weight) \
-        + ((num_invalid_correct / num_invalid) * weight)
+    present_score = num_present_correct / num_present if num_present > 0 else 0
+    swapped_score = num_swapped_correct / num_swapped if num_swapped > 0 else 0
+    invalid_score = num_invalid_correct / num_invalid if num_invalid > 0 else 0
+
+    score = (present_score * (num_present / total_count)) + \
+            (swapped_score * (num_swapped / total_count)) + \
+            (invalid_score * (num_invalid / total_count))
     return score
 
 
