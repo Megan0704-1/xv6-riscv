@@ -1,0 +1,1 @@
+savedcmd_/home/mkuo/CSE330/project5/source_code/memory_manager.ko := ld -r -EL  -maarch64elf -z noexecstack --no-warn-rwx-segments --build-id=sha1  -T scripts/module.lds -o /home/mkuo/CSE330/project5/source_code/memory_manager.ko /home/mkuo/CSE330/project5/source_code/memory_manager.o /home/mkuo/CSE330/project5/source_code/memory_manager.mod.o

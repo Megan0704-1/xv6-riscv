@@ -172,6 +172,7 @@ def __load_module(module_path: str, pid: int, addr: int):
 
     # Run the insmod command
     cmd = ["insmod", module_path_full, f"pid={pid}", f"addr={addr}"]
+    # print(f"cmd: {cmd}")
     proc = subprocess.run(cmd, capture_output=True, text=True)
 
     # Check for valid insertion
@@ -204,8 +205,10 @@ def __parse_phys_addr(line: str):
 
 
 def __parse_swap_addr(line: str):
+    print(f"[parse log]: kernel log msg {line}")
     search = re.search(r'swap identifier \[(\w+)\]', line)
     if search:
+        print(f"[log]: swap addr: {search.group(1)}")
         return search.group(1)
 
     # Check exit code - this should be sufficient, the module exit does
@@ -311,7 +314,7 @@ def test_swapped_addr(module_path: str, pid: int, virt: int, phys: int):
 
     # Retry if the page moves while we are checking
     if not __is_page_swapped(kern_log_output):
-        # print('retry')
+        print('\nretry\n')
         return False
 
     swap_test = int(__parse_swap_addr(kern_log_output), 16)
@@ -326,6 +329,7 @@ def test_swapped_addr(module_path: str, pid: int, virt: int, phys: int):
         log_mistake(f'Error for virtual address {hex(virt)}: '
                     f'expected swapID {hex(swap_correct)}, '
                     f'got swapID {hex(swap_test)}')
+    print('swap addr check success, returning True')
     return True
 
 
@@ -438,7 +442,7 @@ if __name__ == "__main__":
             page_offset = __gen_page_offset()
             virt, phys = random.choice(swap_pages)
             virt = virt | page_offset
-            # print(f'{hex(virt)} -> {hex(phys)}')
+            print(f'{hex(virt)} -> {hex(phys)}')
             retry = test_swapped_addr(path, proc.pid, virt, phys)
 
     """

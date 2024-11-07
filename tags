@@ -1,0 +1,91 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_OUTPUT_EXCMD	mixed	/number, pattern, mixed, or combineV2/
+!_TAG_OUTPUT_FILESEP	slash	/slash or backslash/
+!_TAG_OUTPUT_MODE	u-ctags	/u-ctags or e-ctags/
+!_TAG_PATTERN_LENGTH_LIMIT	96	/0 for no limit/
+!_TAG_PROC_CWD	/home/mkuo/CSE330/project5/	//
+!_TAG_PROGRAM_AUTHOR	Universal Ctags Team	//
+!_TAG_PROGRAM_NAME	Universal Ctags	/Derived from Exuberant Ctags/
+!_TAG_PROGRAM_URL	https://ctags.io/	/official site/
+!_TAG_PROGRAM_VERSION	5.9.0	//
+CC	Makefile	/^CC = gcc$/;"	m
+CFLAGS	Makefile	/^CFLAGS = -std=c99$/;"	m
+CSE330 Project-5 Memory Manager	README.md	/^# CSE330 Project-5 Memory Manager$/;"	c
+INCLUDE_VERMAGIC	source_code/memory_manager.mod.c	/^#define INCLUDE_VERMAGIC$/;"	d	file:
+INVALIDFORMATSTR	source_code/memory_manager.c	/^#define INVALIDFORMATSTR /;"	d	file:
+MEMFORMATSTR	source_code/memory_manager.c	/^#define MEMFORMATSTR /;"	d	file:
+SWAPFORMATSTR	source_code/memory_manager.c	/^#define SWAPFORMATSTR /;"	d	file:
+Usage and expected output:	README.md	/^### Usage and expected output:$/;"	S	section:CSE330 Project-5 Memory Manager""test_module.py
+____versions	source_code/memory_manager.mod.c	/^static const struct modversion_info ____versions[]$/;"	v	typeref:typename:const struct modversion_info[]__used __section ("__versions")	file:
+__gen_page_offset	test_module.py	/^def __gen_page_offset():$/;"	f
+__get_address_ranges	test_module.py	/^def __get_address_ranges(pid: int):$/;"	f
+__get_largest_address_range	test_module.py	/^def __get_largest_address_range(addr_ranges: list):$/;"	f
+__get_pagemap_info	test_module.py	/^def __get_pagemap_info(addr_range: (int, int), pid: int):$/;"	f
+__is_page_present	test_module.py	/^def __is_page_present(line: str):$/;"	f
+__is_page_swapped	test_module.py	/^def __is_page_swapped(line: str):$/;"	f
+__load_module	test_module.py	/^def __load_module(module_path: str, pid: int, addr: int):$/;"	f
+__parse_phys_addr	test_module.py	/^def __parse_phys_addr(line: str):$/;"	f
+__parse_swap_addr	test_module.py	/^def __parse_swap_addr(line: str):$/;"	f
+__read_kern_log	test_module.py	/^def __read_kern_log():$/;"	f
+__unload_module	test_module.py	/^def __unload_module(module_path: str):$/;"	f
+addr	source_code/memory_manager.c	/^static ull addr=0;$/;"	v	typeref:typename:ull	file:
+all	Makefile	/^all: testp5$/;"	t
+all	source_code/Makefile	/^all:$/;"	t
+cal_score	test_module.py	/^def cal_score(num_present: int, num_swapped: int, num_invalid: int):$/;"	f
+calc_deduct	test_module.py	/^def calc_deduct(num_correct: int, total: int):$/;"	f
+check_dir	test_zip_contents.sh	/^check_dir ()$/;"	f
+check_file	test_zip_contents.sh	/^check_file ()$/;"	f
+check_zip_content	test_zip_contents.sh	/^check_zip_content ()$/;"	f
+clean	Makefile	/^clean:$/;"	t
+clean	source_code/Makefile	/^clean:$/;"	t
+err_log	test_module.py	/^err_log = ""$/;"	v
+exit_logical_addr_translation	source_code/memory_manager.c	/^static void __exit exit_logical_addr_translation(void) {$/;"	f	typeref:typename:void __exit	file:
+final_score	test_module.py	/^    final_score = cal_score(num_present, num_swapped, num_invalid)$/;"	v
+final_score	test_module.py	/^    final_score = final_score * 100$/;"	v
+gen_invalid_addrs	test_module.py	/^def gen_invalid_addrs(swap_pages: list, present_pages: list, count: int):$/;"	f
+get_pages_info	test_module.py	/^def get_pages_info(pid: int):$/;"	f
+invalid_pages	test_module.py	/^    invalid_pages = gen_invalid_addrs(swap_pages, present_pages, num_invalid)$/;"	v
+is_hex	test_module.py	/^def is_hex(s):$/;"	f
+log_mistake	test_module.py	/^def log_mistake(line: str):$/;"	f
+logical_addr_translation	source_code/memory_manager.c	/^static int __init logical_addr_translation(void) {$/;"	f	typeref:typename:int __init	file:
+main	testp5.c	/^int main(int argc, char *argv[])$/;"	f	typeref:typename:int
+module_cant_load	test_module.py	/^module_cant_load = False$/;"	v
+module_cant_unload	test_module.py	/^module_cant_unload = False$/;"	v
+num_invalid	test_module.py	/^    num_invalid = int(argv[5])$/;"	v
+num_invalid_correct	test_module.py	/^num_invalid_correct = 0$/;"	v
+num_present	test_module.py	/^    num_present = int(argv[3])$/;"	v
+num_present_correct	test_module.py	/^num_present_correct = 0$/;"	v
+num_swapped	test_module.py	/^    num_swapped = int(argv[4])$/;"	v
+num_swapped_correct	test_module.py	/^num_swapped_correct = 0$/;"	v
+page_offset	test_module.py	/^            page_offset = __gen_page_offset()$/;"	v
+path	test_module.py	/^    path = argv[1]  # Path to kernel object$/;"	v
+phys	test_module.py	/^            virt, phys = random.choice(present_pages)$/;"	v
+phys	test_module.py	/^            virt, phys = random.choice(swap_pages)$/;"	v
+pid	source_code/memory_manager.c	/^static int pid=0;$/;"	v	typeref:typename:int	file:
+present_pages	test_module.py	/^    swap_pages, present_pages = get_pages_info(proc.pid)$/;"	v
+proc	test_module.py	/^    proc = start_testp5_proc(scalar)$/;"	v
+pte_to_swap_entry	source_code/memory_manager.c	/^static inline swp_entry_t pte_to_swap_entry(pte_t pte) {$/;"	f	typeref:typename:swp_entry_t	file:
+retry	test_module.py	/^            retry = test_physical_addr(path, proc.pid, virt, phys)$/;"	v
+retry	test_module.py	/^            retry = test_swapped_addr(path, proc.pid, virt, phys)$/;"	v
+retry	test_module.py	/^        retry = False$/;"	v
+run_test	test_zip_contents.sh	/^run_test ()$/;"	f
+scalar	test_module.py	/^    scalar = int(argv[2])$/;"	v
+start_testp5_proc	test_module.py	/^def start_testp5_proc(arg: int):$/;"	f
+stop_testp5_proc	test_module.py	/^def stop_testp5_proc(proc):$/;"	f
+swap_pages	test_module.py	/^    swap_pages, present_pages = get_pages_info(proc.pid)$/;"	v
+swap_test_case	testp5.c	/^int swap_test_case(float scalar)$/;"	f	typeref:typename:int
+test_invalid_addr	test_module.py	/^def test_invalid_addr(module_path: str, pid: int, virt: int):$/;"	f
+test_module.py	README.md	/^## test_module.py$/;"	s	chapter:CSE330 Project-5 Memory Manager
+test_passed	test_module.py	/^        test_passed = False$/;"	v
+test_passed	test_module.py	/^    test_passed = True$/;"	v
+test_physical_addr	test_module.py	/^def test_physical_addr(module_path: str, pid: int, virt: int, phys: int):$/;"	f
+test_swapped_addr	test_module.py	/^def test_swapped_addr(module_path: str, pid: int, virt: int, phys: int):$/;"	f
+test_zip_contents.sh	README.md	/^## test_zip_contents.sh$/;"	s	chapter:CSE330 Project-5 Memory Manager
+testp5	Makefile	/^testp5: testp5.c$/;"	t
+ull	source_code/memory_manager.c	/^typedef unsigned long long ull;$/;"	t	typeref:typename:unsigned long long	file:
+usage_and_die	test_module.py	/^def usage_and_die():$/;"	f
+virt	test_module.py	/^            virt = virt | page_offset$/;"	v
+virt	test_module.py	/^            virt, phys = random.choice(present_pages)$/;"	v
+virt	test_module.py	/^            virt, phys = random.choice(swap_pages)$/;"	v
+virt	test_module.py	/^        virt = random.choice(invalid_pages)$/;"	v
