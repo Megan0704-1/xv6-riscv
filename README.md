@@ -21,7 +21,7 @@ The flowchart below illustrates how the major functions of dm-cache work togethe
 - **Create the cache:**
   - Use the provided makefile to compile your kernel module and load it using insmod. 
   - Create the cache using the dmsetup command (man dmsetup for more information)
-    `echo 0 4194304 cache /dev/devX/dev/devY 8 262144 | sudo dmsetup create cache`
+    `echo 0 4194304 cache /dev/devX /dev/devY 8 262144 | sudo dmsetup create cache`
 
 - **Run workloads**
   - Issue a 10MB read workload to the cache 
