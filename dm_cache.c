@@ -38,7 +38,9 @@ struct dm_cache_c {
     /* LRU List */
     struct list_head *lru;
     struct bio *bio;
-};
+}
+
+// dm_cache c holds config and state of the caching system
 static struct dm_cache_c *dm_cache;
 
 static void do_write_endio_cb(struct bio *bio)
@@ -97,6 +99,7 @@ static void dmcache_status(struct dm_target* ti, status_type_t type,
     }
 }
 
+// Updates a blk on src device after a cache blk is replaced with a new blk.
 static int update_mapping(struct dm_cache_c *dmc, sector_t block, struct cacheblock *cache)
 {
     cache->src_block_addr = block >> dmc->block_shift;
@@ -106,13 +109,15 @@ static int update_mapping(struct dm_cache_c *dmc, sector_t block, struct cachebl
     return 1;
 }
 
+// Calls `my_cache_hit` to handle hits
 static int cache_hit(struct dm_cache_c *dmc, struct bio* bio, struct cacheblock *cache)
 {
-    cache_stats_inc(cache_hits);
+    cache_stats_inc(cache_hits); // atomic incr dmc cache hit counts
     my_cache_hit(dmc->cache_dev->bdev, cache, dmc->lru);
     return DM_MAPIO_SUBMITTED;
 }
 
+// Calls `my_cache_miss` to handle misses
 static int cache_miss(struct dm_cache_c *dmc, struct bio* bio)
 {
     struct cacheblock* cache;
@@ -126,6 +131,7 @@ static int cache_miss(struct dm_cache_c *dmc, struct bio* bio)
 	return DM_MAPIO_SUBMITTED;
 }
 
+// Checks cache map for blk number, if exist, cache hit, o.w. cache miss.
 static struct cacheblock *cache_lookup(struct dm_cache_c *dmc, const sector_t blk_no)
 {
     struct cacheblock *ret = NULL;
@@ -135,6 +141,7 @@ static struct cacheblock *cache_lookup(struct dm_cache_c *dmc, const sector_t bl
     return ret;
 }
 
+// `The cache map handles the IO request: call upon dm-cache receives IO request`
 static int dmcache_map(struct dm_target* ti, struct bio* bio)
 {
     struct dm_cache_c *dmc = (struct dm_cache_c*)ti->private;
@@ -168,6 +175,9 @@ static int dmcache_message(struct dm_target* ti, unsigned argc,
 	return 1;
 }
 
+//  `Cache destructor`
+// Params
+// - target cache device.
 static void dmcache_dtr(struct dm_target* ti)
 {
     struct dm_cache_c *dmc = (struct dm_cache_c*)ti->private;
@@ -180,6 +190,11 @@ static void dmcache_dtr(struct dm_target* ti)
     kvfree(dmc);
 }
 
+//  `Cache constructor: configures the source & target device`
+// Params
+// - ti <struct dm_target*> = device mapper target device
+// - argc <ui> = # of args
+// - argv <char**> = args array, expecting a source device and a target cache
 static int dmcache_ctr(struct dm_target* ti, unsigned int argc, char* *argv)
 {
     struct dm_cache_c *dmc;
@@ -187,7 +202,7 @@ static int dmcache_ctr(struct dm_target* ti, unsigned int argc, char* *argv)
     unsigned long long cache_size;
     int ret = -EINVAL;
 
-    DMINFO("Name: %s", dm_table_device_name(ti->table));
+    DMINFO("Name: %s", dm_table_device_name(ti->table)); // log
 
     // Read all the command line parameters passed to the dmcache device driver
     if (argc < 2) {
@@ -220,7 +235,9 @@ static int dmcache_ctr(struct dm_target* ti, unsigned int argc, char* *argv)
     strcpy(dmc->src_dev_name, argv[0]);
     strcpy(dmc->cache_dev_name, argv[1]);
 
+    // create IO client for async IO ops
     dmc->io_client = dm_io_client_create();
+
     if (IS_ERR(dmc->io_client)) {
         ret         = PTR_ERR(dmc->io_client);
         ti->error   = "Failed to create io client\n";
@@ -285,6 +302,8 @@ static int dmcache_ctr(struct dm_target* ti, unsigned int argc, char* *argv)
     init_lru(dmc->lru, dmc->cache_size);
 
     ti->max_io_len  = dmc->block_size;
+
+    // stores cache content in private field
     ti->private     = dmc;
 
     DMINFO("------------ Cache Configuration ------------");
