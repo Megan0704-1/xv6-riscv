@@ -44,7 +44,7 @@ my_cache_miss(struct block_device *src_blkdev, struct block_device *cache_blkdev
     do_read(src_blkdev, src_blkaddr);
 
     // write to cache
-    block->source_block_addr = src_blkdev;
+    block->src_block_addr = src_blkaddr;
     do_write(cache_blkdev, block->cache_block_addr);
 
     // updates LRU: 
