@@ -38,7 +38,7 @@ struct dm_cache_c {
     /* LRU List */
     struct list_head *lru;
     struct bio *bio;
-}
+};
 
 // dm_cache c holds config and state of the caching system
 static struct dm_cache_c *dm_cache;

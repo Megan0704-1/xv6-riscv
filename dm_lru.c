@@ -68,7 +68,7 @@ init_lru(struct list_head *lru_head, unsigned int num_blocks)
 
     // Initialize nodes of the LRU list (node is of type cache block struct)
     for(int i=0; i<num_blocks; ++i) {
-        struct cache_block *cbp = (struct cache_block *)kvmalloc(sizeof(struct cache_block), GFP_KERNEL);
+        struct cacheblock *cbp = (struct cacheblock *)kvmalloc(sizeof(struct cacheblock), GFP_KERNEL);
 
         cbp->src_block_addr = 0;
         cbp->cache_block_addr = i >> BLOCK_SHIFT;
@@ -79,11 +79,11 @@ init_lru(struct list_head *lru_head, unsigned int num_blocks)
 void
 free_lru(struct list_head *lru_head)
 {
-    struct cacheblock *blk = list_first_entry(lru_head, struct cacheblock, list);
+    struct cacheblock *blk, *safety;
 
-    while(blk != NULL) {
+    list_for_each_entry_safe(blk, safety, lru_head, list) {
+        list_del(&blk->list);
         kvfree(blk);
-        blk = list_first_entry(lru_head, struct cacheblock, list);
     }
 
     kvfree(lru_head);
