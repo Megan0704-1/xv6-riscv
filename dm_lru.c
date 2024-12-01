@@ -44,6 +44,7 @@ my_cache_miss(struct block_device *src_blkdev, struct block_device *cache_blkdev
     do_read(src_blkdev, src_blkaddr);
 
     // write to cache
+    block->source_block_addr = src_blkdev;
     do_write(cache_blkdev, block->cache_block_addr);
 
     // updates LRU: 
@@ -71,7 +72,7 @@ init_lru(struct list_head *lru_head, unsigned int num_blocks)
         struct cacheblock *cbp = (struct cacheblock *)kvmalloc(sizeof(struct cacheblock), GFP_KERNEL);
 
         cbp->src_block_addr = 0;
-        cbp->cache_block_addr = i >> BLOCK_SHIFT;
+        cbp->cache_block_addr = i << BLOCK_SHIFT;
         list_add(&cbp->list /* new */, lru_head /* head */);
     }
 }
