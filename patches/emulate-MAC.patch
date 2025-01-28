@@ -1,0 +1,165 @@
+From 6a213944c89eb8cec11ca9e907325893fc0dcf3b Mon Sep 17 00:00:00 2001
+From: megakuo <megankuo@asu.edu>
+Date: Tue, 28 Jan 2025 22:36:07 +0000
+Subject: [PATCH] emulate MAC instruction within trap handler
+
+---
+ kernel/trap.c | 124 +++++++++++++++++++++++++++++++++++++++++++++++++-
+ 1 file changed, 122 insertions(+), 2 deletions(-)
+
+diff --git a/kernel/trap.c b/kernel/trap.c
+index 970d73b..b7da0e7 100644
+--- a/kernel/trap.c
++++ b/kernel/trap.c
+@@ -6,6 +6,8 @@
+ #include "proc.h"
+ #include "defs.h"
+ 
++#define ll long long
++
+ struct spinlock tickslock;
+ uint ticks;
+ 
+@@ -16,6 +18,10 @@ void kernelvec();
+ 
+ extern int devintr();
+ 
++// helper func
++static uint64 get_reg(struct trapframe *tf, int reg);
++static void set_reg(struct trapframe *tf, int reg, uint64 val); 
++
+ void
+ trapinit(void)
+ {
+@@ -70,8 +76,36 @@ usertrap(void)
+   }
+ 
+   // Secure Microkernel Design Course - Your Solution Here
+-  // else if(r_scause() == 2) {
+-  // }
++  else if(r_scause() == 2) {
++    int bit_field_5 = 0x1f;
++
++    uint64 instr = r_stval();
++    const uint32 opcode = instr & 0x7f; // mask bit 6:0 for opcode
++    const uint32 funct5 = (instr >> 27) & bit_field_5; // madk bit 31:27
++    if(opcode == 0x0b && funct5 == 0x0) {
++      // mac instruction
++      int rd = (instr >> 7) & bit_field_5;
++      int rs1 = (instr >> 12) & bit_field_5;
++      int rs2 = (instr >> 17) & bit_field_5;
++      int rs3 = (instr >> 22) & bit_field_5;
++
++      uint64 a = get_reg(p->trapframe, rs1);
++      uint64 b = get_reg(p->trapframe, rs2);
++      uint64 c = get_reg(p->trapframe, rs3);
++
++      ll result = (ll)a * (ll)b + (ll)c;
++
++      // store
++      set_reg(p->trapframe, rd, (int)result);
++
++      // update pc
++      p->trapframe->epc += 4;
++    } else {
++      printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
++      printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
++      setkilled(p);
++    }
++  }
+ 
+   else {
+     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+@@ -222,3 +256,89 @@ devintr()
+   }
+ }
+ 
++static uint64
++get_reg(struct trapframe *tf, int reg) {
++  // x0 is always 0
++  if(reg == 0) return 0;
++
++  switch(reg) {
++    case 1: return tf->ra;
++    case 2: return tf->sp;
++    case 3: return tf->gp;
++    case 4: return tf->tp;
++    case 5: return tf->t0;
++    case 6: return tf->t1;
++    case 7: return tf->t2;
++    case 8: return tf->s0;
++    case 9: return tf->s1;
++    case 10: return tf->a0;
++    case 11: return tf->a1;
++    case 12: return tf->a2;
++    case 13: return tf->a3;
++    case 14: return tf->a4;
++    case 15: return tf->a5;
++    case 16: return tf->a6;
++    case 17: return tf->a7;
++    case 18: return tf->s2;
++    case 19: return tf->s3;
++    case 20: return tf->s4;
++    case 21: return tf->s5;
++    case 22: return tf->s6;
++    case 23: return tf->s7;
++    case 24: return tf->s8;
++    case 25: return tf->s9;
++    case 26: return tf->s10;
++    case 27: return tf->s11;
++    case 28: return tf->t3;
++    case 29: return tf->t4;
++    case 30: return tf->t5;
++    case 31: return tf->t6;
++
++    default:
++      panic("get_reg: invalid register");
++      return 0;
++  }
++}
++
++static void
++set_reg(struct trapframe *tf, int reg, uint64 val) {
++  // x0 is always 0
++  if(reg == 0) return;
++
++  switch(reg) {
++    case 1:  tf->ra = val; break;
++    case 2:  tf->sp = val; break;
++    case 3:  tf->gp = val; break; 
++    case 4:  tf->tp = val; break;
++    case 5:  tf->t0 = val; break;
++    case 6:  tf->t1 = val; break;
++    case 7:  tf->t2 = val; break;
++    case 8:  tf->s0 = val; break;
++    case 9:  tf->s1 = val; break;
++    case 10:  tf->a0 = val; break;
++    case 11:  tf->a1 = val; break;
++    case 12:  tf->a2 = val; break;
++    case 13:  tf->a3 = val; break;
++    case 14:  tf->a4 = val; break;
++    case 15:  tf->a5 = val; break;
++    case 16:  tf->a6 = val; break;
++    case 17:  tf->a7 = val; break;
++    case 18:  tf->s2 = val; break;
++    case 19:  tf->s3 = val; break;
++    case 20:  tf->s4 = val; break;
++    case 21:  tf->s5 = val; break;
++    case 22:  tf->s6 = val; break;
++    case 23:  tf->s7 = val; break;
++    case 24:  tf->s8 = val; break;
++    case 25:  tf->s9 = val; break;
++    case 26:  tf->s10 = val; break;
++    case 27:  tf->s11 = val; break;
++    case 28:  tf->t3 = val; break;
++    case 29:  tf->t4 = val; break;
++    case 30:  tf->t5 = val; break;
++    case 31:  tf->t6 = val; break;
++
++    default:
++      panic("set_reg: invalid register");
++  }
++}
+-- 
+2.43.0
+
