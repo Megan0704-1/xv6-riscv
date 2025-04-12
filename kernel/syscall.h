@@ -20,3 +20,6 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+
+#define SYS_send 22 // [New] send(pid, msg)
+#define SYS_recv 23 // [New] recv(pid, msg)

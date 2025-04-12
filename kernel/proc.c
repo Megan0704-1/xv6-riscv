@@ -15,6 +15,9 @@ struct proc *initproc;
 int nextpid = 1;
 struct spinlock pid_lock;
 
+// [New] protects IPC data in proc[]
+struct spinlock ipc_lock; 
+
 extern void forkret(void);
 static void freeproc(struct proc *p);
 
@@ -51,6 +54,7 @@ procinit(void)
   
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
+  initlock(&ipc_lock, "ipc_lock"); // [New] init ipc lock
   for(p = proc; p < &proc[NPROC]; p++) {
       initlock(&p->lock, "proc");
       p->state = UNUSED;

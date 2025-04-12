@@ -1,3 +1,6 @@
+#ifndef __PROC_H__
+#define __PROC_H__
+
 // Saved registers for kernel context switches.
 struct context {
   uint64 ra;
@@ -80,9 +83,21 @@ struct trapframe {
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
+enum ipcstate { NOIPC, SEND_BLOCKING, RECV_BLOCKING };
 
 // Per-process state
 struct proc {
+
+  // IPC message buffer and state (for message passing)
+  struct messgae {
+    char data[MSGSIZE];       // [New] message content sent by IPC is limited to 32 bytes
+  } ipc_msg;
+  enum ipcstate ipc_status;   // [New] 0: no ipc; 1: send block; 2: receive block
+                              //
+  int pending_dest;           // [New] receiver pid
+  int expected_src;           // [New] expected sender PID ;
+                              // expected_src = -1 if any sender is acceptable
+
   struct spinlock lock;
 
   // p->lock must be held when using these:
@@ -105,3 +120,5 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 };
+
+#endif // __PROC_H__
