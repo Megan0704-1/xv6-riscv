@@ -36,3 +36,6 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+
+entry("send"); # [New] syscall stub for send
+entry("recv"); # [New] syscall stub for recv
