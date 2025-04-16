@@ -13,4 +13,14 @@
 #define MAXPATH      128   // maximum file path name
 #define USERSTACK    1     // user stack pages
 
-#define MSGSIZE      32 // [Max bytes in an IPC message]
+#define IPC_QUEUE_LIMIT 32                // [New] Max num of elements in the queue
+#define IPC_MAX_PAYLOAD 4096              // [New] 4KB
+#define IPC_ANY_SENDER -1                 // [New] any sender repr. by -1
+                                          
+#define IPC_WAITING 0x1                   // [New] process is sleep-waiting for a msg
+#define IPC_NONBLOCK 0x2                  // [New] non-blocking recv
+                                         
+#define IPC_HEADER_SIZE (sizeof(int) * 3) // [New] Remove fixed size MSGSIZE.
+                                          // The IPC header consists of 3 ints:
+                                          // 1. msgid, 2. type, 3. len of bytes
+

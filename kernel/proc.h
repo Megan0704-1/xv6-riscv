@@ -83,20 +83,27 @@ struct trapframe {
 };
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
-enum ipcstate { NOIPC, SEND_BLOCKING, RECV_BLOCKING };
+
+// [New] IPC message node struct for queued message
+struct ipc_msg_node {
+  int msgid;                  // Unique message identifier
+  int msgtype;                // Message type forward to server (FS_READ, FS_FSTATS, ...)
+  int msglen;                 // length of payload in bytes
+  int msg_sender_pid;         // sender pid
+  char *payload;              // pointer to the allocated payload
+  struct ipc_msg_node *next;  // pointer to the next node
+};
 
 // Per-process state
 struct proc {
 
-  // IPC message buffer and state (for message passing)
-  struct messgae {
-    char data[MSGSIZE];       // [New] message content sent by IPC is limited to 32 bytes
-  } ipc_msg;
-  enum ipcstate ipc_status;   // [New] 0: no ipc; 1: send block; 2: receive block
-                              //
-  int pending_dest;           // [New] receiver pid
-  int expected_src;           // [New] expected sender PID ;
-                              // expected_src = -1 if any sender is acceptable
+  // [New] IPC message queue
+  struct ipc_msg_node *ipc_queue_head;
+  struct ipc_msg_node *ipc_queue_tail;
+  int ipc_queue_count;
+
+  int expected_src;            // [New] the expected sender PID, -1 for any sender.
+  int ipc_flags;     // [New] ipc state flags
 
   struct spinlock lock;
 
