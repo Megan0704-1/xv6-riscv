@@ -1,7 +1,7 @@
 #include "kernel/param.h"
+#include "kernel/types.h"
 
 struct stat;
-struct message { char data[MSGSIZE]; }; // [New] message structure for IPC
 
 // system calls
 int fork(void);
@@ -22,13 +22,14 @@ int mkdir(const char*);
 int chdir(const char*);
 int dup(int);
 int getpid(void);
+int getppid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
 
 // ipc
-int send(int pid, const void* msg); // [New] send a msg to pid (block until recieve)
-int recv(int pid, void* msg); // [New] recv a msg from pid (or from any sender if pid==-1) (blocks until msg arrive)
+int send(int pid, void* msg); // [New] send a msg to pid (block until recieve)
+int recv(int pid, void* msg, int flags); // [New] recv a msg from pid (or from any sender if pid==-1) (blocks until msg arrive)
 
 // ulib.c
 int stat(const char*, struct stat*);

@@ -129,9 +129,6 @@ UPROGS=\
 	$U/_forktest\
 	$U/_grep\
 	$U/_init\
-	$U/_ping\
-	$U/_pong\
-	$U/_ping_pong_test\
 	$U/_kill\
 	$U/_ln\
 	$U/_ls\
@@ -144,6 +141,7 @@ UPROGS=\
 	$U/_grind\
 	$U/_wc\
 	$U/_zombie\
+	$U/_ipc_queue_test\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
