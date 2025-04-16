@@ -22,4 +22,6 @@
 #define SYS_close  21
 
 #define SYS_send 22 // [New] send(pid, msg)
-#define SYS_recv 23 // [New] recv(pid, msg)
+#define SYS_recv 23 // [New] recv(pid, msg, flags)
+
+#define SYS_getppid 24 // [New] getppid()
