@@ -8,6 +8,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "sysipc.h"
+#include "sysipc_alloc.h"
 
 extern struct proc proc[NPROC];
 extern struct spinlock ipc_lock;
@@ -67,7 +68,7 @@ sys_send(void) {
 
   // dynamic allocate for ipc msg node
   // TODO: change kalloc to more fine grained memory control
-  struct ipc_msg_node *new_msg = (struct ipc_msg_node*)kalloc();
+  struct ipc_msg_node *new_msg = alloc_ipc_msg_node();
   if(!new_msg) {
     release(&ipc_lock);
     return -1;
@@ -87,7 +88,7 @@ sys_send(void) {
 
     // ask memory for payload fail
     if(!new_msg->payload) {
-      kfree((char*)new_msg);
+      free_ipc_msg_node(new_msg);
       release(&ipc_lock);
       return -1;
     }
@@ -96,7 +97,7 @@ sys_send(void) {
     uint64 payload_addr = user_addr + sizeof(kernel_head_buffer);
     if(copyin(p->pagetable, new_msg->payload, payload_addr, msglen) < 0) {
       kfree(new_msg->payload);
-      kfree((char*)new_msg);
+      free_ipc_msg_node(new_msg);
       release(&ipc_lock);
       return -1;
     }
@@ -197,7 +198,7 @@ uint64 sys_recv(void) {
     if(sender_node->payload) {
       kfree(sender_node->payload);
     }
-    kfree(sender_node);
+    free_ipc_msg_node(sender_node);
     return -1;
   }
 
@@ -207,12 +208,12 @@ uint64 sys_recv(void) {
       if(sender_node->payload) {
         kfree(sender_node->payload);
       }
-      kfree(sender_node);
+      free_ipc_msg_node(sender_node);
       return -1;
     }
     kfree(sender_node->payload);
   }
 
-  kfree(sender_node);
+  free_ipc_msg_node(sender_node);
   return 0;
 }
