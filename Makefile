@@ -29,7 +29,9 @@ OBJS = \
   $K/kernelvec.o \
   $K/plic.o \
   $K/virtio_disk.o \
-  $K/sysipc.o
+  $K/sysipc.o \
+  $K/sysipc_alloc.o \
+  $K/service_registry.o 
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
