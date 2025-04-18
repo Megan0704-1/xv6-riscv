@@ -25,3 +25,7 @@
 #define SYS_recv 23 // [New] recv(pid, msg, flags)
 
 #define SYS_getppid 24 // [New] getppid()
+
+#define SYS_register_service 25 // [New] register_service(name, pid)
+#define SYS_lookup_service 26 // [New] lookup_service(name)
+

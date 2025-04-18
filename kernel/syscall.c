@@ -106,6 +106,9 @@ extern uint64 sys_send(void); // [New] declare sys_send
 extern uint64 sys_recv(void); // [New] declare sys_recv
 
 extern uint64 sys_getppid(void); // [New] declare sys_getppid
+
+extern uint64 sys_register_service(void); // [New] declare sys_register_service
+extern uint64 sys_lookup_service(void);   // [New] declare sys_lookup_service
                               
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -135,6 +138,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_send]    sys_send, // [New] hook ipc send syscall
 [SYS_recv]    sys_recv, // [New] hook ipc recv syscall
 [SYS_getppid]  sys_getppid, // [New] hook get parent pid syscall
+[SYS_register_service]  sys_register_service, // [New] hook service register syscall
+[SYS_lookup_service]    sys_lookup_service,   // [New] hook service lookup syscall
 };
 
 void
