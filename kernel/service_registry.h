@@ -2,9 +2,6 @@
 #ifndef SERVICE_REGISTRY_H
 #define SERVICE_REGISTRY_H
 
-#define MAX_SERVICES 16
-#define SERVICE_NAME_LEN 16
-
 struct service_entry {
   char name[SERVICE_NAME_LEN];
   int pid; 

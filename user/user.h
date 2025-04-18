@@ -31,6 +31,10 @@ int uptime(void);
 int send(int pid, void* msg); // [New] send a msg to pid (block until recieve)
 int recv(int pid, void* msg, int flags); // [New] recv a msg from pid (or from any sender if pid==-1) (blocks until msg arrive)
 
+// service registry
+int register_service(const char*, int);
+int lookup_service(const char*);
+
 // ulib.c
 int stat(const char*, struct stat*);
 char* strcpy(char*, const char*);

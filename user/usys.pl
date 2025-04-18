@@ -41,3 +41,6 @@ entry("send"); # [New] syscall stub for send
 entry("recv"); # [New] syscall stub for recv
 
 entry("getppid"); # [New] syscall stub for get parent pid
+
+entry("register_service"); # [New] syscall stub for registering server process
+entry("lookup_service"); # [New] syscall stub for looking up PID of a server process
