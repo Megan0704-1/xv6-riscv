@@ -24,22 +24,26 @@ void service_registry_init(void) {
 int register_service(const char *name, int pid) {
   acquire(&service_registry_lock);
 
+  // find if server is already registered
   for(int i=0; i<MAX_SERVICES; ++i) {
-    if((strncmp(service_registry[i].name, name, SERVICE_NAME_LEN) != 0) || (service_registry[i].pid == pid)) {
+    if((service_registry[i].pid != -1) && (strncmp(service_registry[i].name, name, SERVICE_NAME_LEN) == 0)) {
       release(&service_registry_lock);
       return -1;
     }
+  }
 
+  for(int i=0; i<MAX_SERVICES; ++i) {
     if(service_registry[i].pid == -1) {
       strncpy(service_registry[i].name, name, SERVICE_NAME_LEN-1);
-      service_registry[i].name[SERVICE_NAME_LEN-1] += '\0';
-      service_registry[i].pid = pid;
+      service_registry[i].name[SERVICE_NAME_LEN-1] = '\0';
 
+      service_registry[i].pid = pid;
       release(&service_registry_lock);
       return 0;
     }
   }
 
+  // no more slots
   release(&service_registry_lock);
   return -1;
 }
@@ -49,7 +53,7 @@ int lookup_service(const char *name) {
   acquire(&service_registry_lock);
 
   for(int i=0; i<MAX_SERVICES; ++i) {
-    if(strncmp(service_registry[i].name, name, SERVICE_NAME_LEN) == 0) {
+    if((service_registry[i].pid != -1) && (strncmp(service_registry[i].name, name, SERVICE_NAME_LEN) == 0)) {
       pid = service_registry[i].pid;
       break;
     }
