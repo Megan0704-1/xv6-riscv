@@ -6,6 +6,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "sysipc_alloc.h"
+#include "server_protocol.h"
 
 // global free list for ipc_msg_node
 struct ipc_msg_node *ipc_msg_free_list = 0;

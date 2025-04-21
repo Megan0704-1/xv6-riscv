@@ -30,6 +30,7 @@ ipc_send(int dest_pid, uint64 user_addr) {
   }
 
   if((dest_p == 0) || (dest_p == p)) {
+    printf("ipc_send: sending to invalid dest (self / 0)\n");
     release(&ipc_lock);
     return -1;
   }
@@ -40,16 +41,16 @@ ipc_send(int dest_pid, uint64 user_addr) {
     return -1;
   }
 
-  // copy sender process IPC head to kernel space
-  int kernel_head_buffer[3];
-  if(copyin(p->pagetable, (char*)kernel_head_buffer, user_addr, sizeof(kernel_head_buffer)) < 0) {
+  // copy sender payload to kernl
+  IPCHeader kernel_header;
+  if(copyin(p->pagetable, (char*)&kernel_header, user_addr, sizeof(kernel_header)) < 0) {
     release(&ipc_lock);
     return -1;
   }
 
-  int msgid = kernel_head_buffer[0];
-  int msgtype = kernel_head_buffer[1];
-  int msglen = kernel_head_buffer[2];
+  int msgid = kernel_header.msgid;
+  int msgtype = kernel_header.msgtype;
+  int msglen = kernel_header.msglen;
 
   // enforce msg len to be within max payload size
   if((msglen < 0) || (msglen > IPC_MAX_PAYLOAD)) {
@@ -85,7 +86,7 @@ ipc_send(int dest_pid, uint64 user_addr) {
     }
 
     // copy payload from user space
-    uint64 payload_addr = user_addr + sizeof(kernel_head_buffer);
+    uint64 payload_addr = user_addr + sizeof(kernel_header);
     if(copyin(p->pagetable, new_msg->payload, payload_addr, msglen) < 0) {
       kfree(new_msg->payload);
       free_ipc_msg_node(new_msg);
@@ -173,13 +174,13 @@ uint64 ipc_recv(int from, uint64 user_addr, int flags) {
   release(&ipc_lock);
 
   // prepare to copy out (from kernel to user)
-  int kernel_head_buffer[3];
-  kernel_head_buffer[0] = sender_node->msgid;
-  kernel_head_buffer[1] = sender_node->msgtype;
-  kernel_head_buffer[2] = sender_node->msglen;
+  IPCHeader kernel_header;
+  kernel_header.msgid = sender_node->msgid;
+  kernel_header.msgtype = sender_node->msgtype;
+  kernel_header.msglen = sender_node->msglen;
 
   // copy out header
-  if(copyout(p->pagetable, user_addr, (char*)kernel_head_buffer, sizeof(kernel_head_buffer)) < 0) {
+  if(copyout(p->pagetable, user_addr, (char*)&kernel_header, sizeof(kernel_header)) < 0) {
     if(sender_node->payload) {
       kfree(sender_node->payload);
     }
@@ -189,7 +190,7 @@ uint64 ipc_recv(int from, uint64 user_addr, int flags) {
 
   // copy out payload
   if(sender_node->msglen > 0) {
-    if(copyout(p->pagetable, user_addr + sizeof(kernel_head_buffer), (char*)sender_node->payload, sender_node->msglen) < 0) {
+    if(copyout(p->pagetable, user_addr + sizeof(kernel_header), (char*)sender_node->payload, sender_node->msglen) < 0) {
       if(sender_node->payload) {
         kfree(sender_node->payload);
       }

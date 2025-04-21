@@ -21,8 +21,13 @@
 
 #endif
 
+typedef enum {FS_OPEN, FS_READ, FS_WRITE, FS_CLOSE, FS_FSTAT, FS_DUP, FS_MKNOD, FS_CHDIR, DEV_READ, DEV_WRITE} RequestType;
 
-typedef enum {FS_OPEN, FS_READ, FS_WRITE, FS_CLOSE, FS_FSTAT, FS_DUP, FS_DEL, DEV_READ, DEV_WRITE} RequestType;
+typedef struct {
+  int msgid; // status for reply, pid for request
+  int msgtype; // request type
+  int msglen; // msg len
+} IPCHeader;
 
 typedef struct {
   RequestType type;
@@ -37,13 +42,14 @@ typedef struct {
     struct { int fh; int len; char data[MAX_WRITE_SIZE]; } fs_write;
     struct { int fh; } fs_fstat;
     struct { int fh; } fs_dup;
-    struct { char path[MAXPATH]; } fs_del;
+    struct { char path[MAXPATH]; int major; int minor; } fs_mknod;
+    struct { char path[MAXPATH]; } fs_chdir;
 
     // device driver
     struct { int block_no; int count; } dev_read;
     struct { int block_no; int count; char data[BSIZE * MAXCOUNT]; } dev_write;
   } handle;
-} ServiceRequest;
+} IPCRequest;
 
 typedef struct {
   int status; /* total bytes trasfer if success, else -1 */
@@ -53,14 +59,27 @@ typedef struct {
   union {
     // file system
     struct { int fd; } fs_open;
+    struct { } fs_close;
     struct { int bytes; char data[MAX_READ_SIZE]; } fs_read;
     struct { int bytes; } fs_write;
     struct { struct stat *st; } fs_fstat;
     struct { int fd; } fs_dup;
+    struct { } fs_mknod;
+    struct { } fs_chdir;
 
     // device driver
     struct { int bytes; } dev_write;
   } handle;
+} IPCReply;
+
+typedef struct {
+  IPCHeader header;
+  IPCRequest req;
+} ServiceRequest;
+
+typedef struct {
+  IPCHeader header;
+  IPCReply repl;
 } ServiceReply;
 
 #endif // SERVER_PROTOCOL_H
