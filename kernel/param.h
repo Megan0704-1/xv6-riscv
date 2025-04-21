@@ -29,11 +29,8 @@
 #define SERVICE_NAME_LEN 16
 
 // [New] fs params
-#define MAX_PATH_LEN 128
 #define MAX_READ_SIZE 256
 #define MAX_WRITE_SIZE 256
-#define FS_BUFFER_SIZE 1024
 
 #define MAXCOUNT 8 /* Maximum multi-block transfer */
-#define BSIZE 512
 

@@ -21,4 +21,6 @@ int register_service(const char *name, int pid);
 // return service PID
 int lookup_service(const char *name);
 
+// clean up
+void deregister_service(int pid);
 #endif // SERVICE_REGISTRY_H

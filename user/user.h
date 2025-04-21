@@ -1,5 +1,6 @@
 #include "kernel/param.h"
 #include "kernel/types.h"
+#include "kernel/server_protocol.h"
 
 struct stat;
 
@@ -34,6 +35,10 @@ int recv(int pid, void* msg, int flags); // [New] recv a msg from pid (or from a
 // service registry
 int register_service(const char*, int);
 int lookup_service(const char*);
+
+// disk
+int disk_read(int, void*);
+int disk_write(int, void*);
 
 // ulib.c
 int stat(const char*, struct stat*);

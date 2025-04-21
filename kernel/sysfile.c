@@ -15,6 +15,7 @@
 #include "sleeplock.h"
 #include "file.h"
 #include "fcntl.h"
+#include "buf.h" // [New]
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -501,5 +502,55 @@ sys_pipe(void)
     fileclose(wf);
     return -1;
   }
+  return 0;
+}
+
+// [New] sys_disk_read
+// copies one 512 byte sector (BSIZE) into user buffer
+uint64
+sys_disk_read(void)
+{
+  int blkno;
+  uint64 user_buffer;
+  struct proc *p = myproc();
+
+  argint(0, &blkno);
+  argaddr(1, &user_buffer);
+
+  if(blkno < 0) return -1;
+
+  struct buf *b = bread(ROOTDEV, blkno);
+  if(copyout(p->pagetable, user_buffer, (char*)&b->data, BSIZE) < 0) {
+    brelse(b);
+    return -1;
+  }
+  brelse(b);
+  return 0;
+}
+
+// [New] sys_disk_write
+// write 1 sector (512 bytes) from user addr to disk
+uint64
+sys_disk_write(void)
+{
+  int blkno;
+  uint64 user_buffer;
+  struct proc *p = myproc();
+
+  argint(0, &blkno);
+  argaddr(1, &user_buffer);
+
+  if(blkno < 0) return -1;
+  
+  char kbuf[BSIZE]; // kernel buffer
+  if(copyin(p->pagetable, kbuf, user_buffer, BSIZE) < 0) {
+    return -1;
+  }
+
+  struct buf *b = bread(ROOTDEV, blkno);
+  memmove(b->data, kbuf, BSIZE);
+  bwrite(b);
+  brelse(b);
+
   return 0;
 }

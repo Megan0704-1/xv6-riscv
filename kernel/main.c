@@ -17,6 +17,10 @@ main()
     printf("xv6 kernel is booting\n");
     printf("\n");
     kinit();         // physical page allocator
+                     
+    service_registry_init(); // [New] service registry for server PID
+    sysipc_alloc_init();     // [New] ipc allocation
+                             
     kvminit();       // create kernel page table
     kvminithart();   // turn on paging
     procinit();      // process table
@@ -30,9 +34,6 @@ main()
     virtio_disk_init(); // emulated hard disk
     userinit();      // first user process
                      
-    sysipc_alloc_init();     // [New] ipc allocation
-    service_registry_init(); // [New] service registry for server PID
-                             
     __sync_synchronize();
     started = 1;
   } else {

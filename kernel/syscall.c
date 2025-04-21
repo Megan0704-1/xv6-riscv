@@ -109,6 +109,9 @@ extern uint64 sys_getppid(void); // [New] declare sys_getppid
 
 extern uint64 sys_register_service(void); // [New] declare sys_register_service
 extern uint64 sys_lookup_service(void);   // [New] declare sys_lookup_service
+
+extern uint64 sys_disk_read(void);  // [New] declare sys_disk_read
+extern uint64 sys_disk_write(void); // [New] declare sys_disk_write
                               
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -140,6 +143,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_getppid]  sys_getppid, // [New] hook get parent pid syscall
 [SYS_register_service]  sys_register_service, // [New] hook service register syscall
 [SYS_lookup_service]    sys_lookup_service,   // [New] hook service lookup syscall
+[SYS_disk_read]    sys_disk_read,  // [New] hook disk read syscall
+[SYS_disk_write]   sys_disk_write, // [New] hook disk write syscall
 };
 
 void

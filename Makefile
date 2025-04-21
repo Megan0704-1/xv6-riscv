@@ -29,9 +29,11 @@ OBJS = \
   $K/kernelvec.o \
   $K/plic.o \
   $K/virtio_disk.o \
+  $K/ipc.o \
   $K/sysipc.o \
   $K/sysipc_alloc.o \
-  $K/service_registry.o 
+  $K/sysservice.o \
+  $K/service_registry.o  
 
 # riscv64-unknown-elf- or riscv64-linux-gnu-
 # perhaps in /opt/riscv/bin
@@ -97,7 +99,7 @@ $U/initcode: $U/initcode.S
 tags: $(OBJS) _init
 	etags *.S *.c
 
-ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/libfs.o 
 
 _%: %.o $(ULIB)
 	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
@@ -110,11 +112,20 @@ $U/usys.S : $U/usys.pl
 $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
+# [New]
+$U/fs_impl.o: $U/fs_impl.c $U/fs_impl.h $U/file_impl.h
+	$(CC) $(CFLAGS) -I. -c $< -o $@
+
 $U/_forktest: $U/forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small
 	# in order to be able to max out the proc table.
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_forktest $U/forktest.o $U/ulib.o $U/usys.o $U/libfs.o
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
+
+#[New]
+$U/_fs_server: $U/fs_server.o $U/fs_impl.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fs_server $U/fs_server.o $U/fs_impl.o $U/ulib.o $U/usys.o $U/libfs.o $U/printf.o 
+	$(OBJDUMP) -S $U/_fs_server > $U/fs_server.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
@@ -145,6 +156,9 @@ UPROGS=\
 	$U/_zombie\
 	$U/_ipc_q_test\
 	$U/_serv_reg_test\
+	$U/_disk_test\
+	$U/_fs_server\
+	$U/_test_fs
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)

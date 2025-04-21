@@ -19,19 +19,19 @@ entry("fork");
 entry("exit");
 entry("wait");
 entry("pipe");
-entry("read");
-entry("write");
-entry("close");
+# entry("read");
+# entry("write");
+# entry("close");
 entry("kill");
 entry("exec");
-entry("open");
+# entry("open");
 entry("mknod");
 entry("unlink");
-entry("fstat");
+# entry("fstat");
 entry("link");
 entry("mkdir");
 entry("chdir");
-entry("dup");
+# entry("dup");
 entry("getpid");
 entry("sbrk");
 entry("sleep");
@@ -44,3 +44,6 @@ entry("getppid"); # [New] syscall stub for get parent pid
 
 entry("register_service"); # [New] syscall stub for registering server process
 entry("lookup_service"); # [New] syscall stub for looking up PID of a server process
+
+entry("disk_read");     # [New] syscall stub for disk read
+entry("disk_write");    # [New] syscall stub for disk write

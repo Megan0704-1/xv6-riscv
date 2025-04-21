@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "service_registry.h"
 
 struct cpu cpus[NCPU];
 
@@ -326,6 +327,8 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  printf("%d fork complete for %d\n", p->pid, pid);
+  printf("%d process has stack size: %ld\n", pid, p->sz);
   return pid;
 }
 
@@ -363,6 +366,7 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
+  deregister_service(p->pid); // [New] deregister the process if exists
 
   begin_op();
   iput(p->cwd);

@@ -29,3 +29,7 @@
 #define SYS_register_service 25 // [New] register_service(name, pid)
 #define SYS_lookup_service 26 // [New] lookup_service(name)
 
+#define SYS_disk_read 27  // [New] disk read
+#define SYS_disk_write 28 // [New] disk write
+                         
+

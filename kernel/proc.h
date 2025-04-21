@@ -87,7 +87,7 @@ enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 // [New] IPC message node struct for queued message
 struct ipc_msg_node {
   int msgid;                  // Unique message identifier
-  int msgtype;                // Message type forward to server (FS_READ, FS_FSTATS, ...)
+  int msgtype;                // Message type forward to server (FS_READ, FS_FSTAT, ...)
   int msglen;                 // length of payload in bytes
   int msg_sender_pid;         // sender pid
   char *payload;              // pointer to the allocated payload
