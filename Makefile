@@ -113,6 +113,9 @@ $U/usys.o : $U/usys.S
 	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
 
 # [New]
+$U/file_impl.o: $U/file_impl.c $U/file_impl.h $U/fs_impl.h
+	$(CC) $(CFLAGS) -I. -c $< -o $@
+
 $U/fs_impl.o: $U/fs_impl.c $U/fs_impl.h $U/file_impl.h
 	$(CC) $(CFLAGS) -I. -c $< -o $@
 
@@ -123,8 +126,9 @@ $U/_forktest: $U/forktest.o $(ULIB)
 	$(OBJDUMP) -S $U/_forktest > $U/forktest.asm
 
 #[New]
-$U/_fs_server: $U/fs_server.o $U/fs_impl.o $(ULIB)
-	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fs_server $U/fs_server.o $U/fs_impl.o $U/ulib.o $U/usys.o $U/libfs.o $U/printf.o 
+SERVERLIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o $U/libfs.o 
+$U/_fs_server: $U/fs_server.o $U/fs_impl.o $U/file_impl.o $(ULIB)
+	$(LD) $(LDFLAGS) -N -e main -Ttext 0 -o $U/_fs_server $U/fs_server.o $U/fs_impl.o $U/file_impl.o $U/ulib.o $U/usys.o $U/libfs.o $U/printf.o 
 	$(OBJDUMP) -S $U/_fs_server > $U/fs_server.asm
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
