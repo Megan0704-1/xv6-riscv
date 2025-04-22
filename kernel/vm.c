@@ -363,12 +363,18 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
 
   while(len > 0){
     va0 = PGROUNDDOWN(dstva);
-    if(va0 >= MAXVA)
+    if(va0 >= MAXVA) {
+      printf("va0 > MAXVA error\n");
+      printf("va0 : %ld\n", va0);
       return -1;
+    }
     pte = walk(pagetable, va0, 0);
     if(pte == 0 || (*pte & PTE_V) == 0 || (*pte & PTE_U) == 0 ||
-       (*pte & PTE_W) == 0)
+        (*pte & PTE_W) == 0) {
+
+      printf("page table error\n");
       return -1;
+    }
     pa0 = PTE2PA(*pte);
     n = PGSIZE - (dstva - va0);
     if(n > len)

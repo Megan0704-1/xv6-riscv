@@ -32,4 +32,7 @@
 #define SYS_disk_read 27  // [New] disk read
 #define SYS_disk_write 28 // [New] disk write
                          
+#define SYS_debug 29
 
+#define SYS_console_read 30
+#define SYS_console_write 31

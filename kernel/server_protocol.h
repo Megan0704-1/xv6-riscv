@@ -5,6 +5,7 @@
 #define SERVER_PROTOCOL_H
 
 #include "param.h"
+#include "stat.h"
 
 #ifndef USERPARAM
 #define USERPARAM 1
@@ -44,10 +45,6 @@ typedef struct {
     struct { int fh; } fs_dup;
     struct { char path[MAXPATH]; int major; int minor; } fs_mknod;
     struct { char path[MAXPATH]; } fs_chdir;
-
-    // device driver
-    struct { int block_no; int count; } dev_read;
-    struct { int block_no; int count; char data[BSIZE * MAXCOUNT]; } dev_write;
   } handle;
 } IPCRequest;
 
@@ -59,16 +56,10 @@ typedef struct {
   union {
     // file system
     struct { int fd; } fs_open;
-    struct { } fs_close;
     struct { int bytes; char data[MAX_READ_SIZE]; } fs_read;
     struct { int bytes; } fs_write;
-    struct { struct stat *st; } fs_fstat;
+    struct { struct stat st; } fs_fstat;
     struct { int fd; } fs_dup;
-    struct { } fs_mknod;
-    struct { } fs_chdir;
-
-    // device driver
-    struct { int bytes; } dev_write;
   } handle;
 } IPCReply;
 

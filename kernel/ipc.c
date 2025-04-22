@@ -52,6 +52,12 @@ ipc_send(int dest_pid, uint64 user_addr) {
   int msgtype = kernel_header.msgtype;
   int msglen = kernel_header.msglen;
 
+  printf("=== ipc send for %d to %d debug start === \n", p->pid, dest_p->pid);
+  printf("msg id: %d\n", kernel_header.msgid);
+  printf("msg type: %d\n", kernel_header.msgtype);
+  printf("msg len: %d\n", kernel_header.msglen);
+  printf("=== debug ends === \n");
+
   // enforce msg len to be within max payload size
   if((msglen < 0) || (msglen > IPC_MAX_PAYLOAD)) {
     release(&ipc_lock);
@@ -59,7 +65,6 @@ ipc_send(int dest_pid, uint64 user_addr) {
   }
 
   // dynamic allocate for ipc msg node
-  // TODO: change kalloc to more fine grained memory control
   struct ipc_msg_node *new_msg = alloc_ipc_msg_node();
   if(!new_msg) {
     release(&ipc_lock);
@@ -109,6 +114,7 @@ ipc_send(int dest_pid, uint64 user_addr) {
   // check dest_p ipc status
   if(dest_p->ipc_flags & IPC_WAITING) {
     if((dest_p->expected_src == IPC_ANY_SENDER) || (dest_p->expected_src == p->pid)) {
+      dest_p->expected_src = p->pid;
       dest_p->ipc_flags &= ~IPC_WAITING;
       wakeup(dest_p);
     }
@@ -123,7 +129,6 @@ ipc_send(int dest_pid, uint64 user_addr) {
 // sys_recv helper
 uint64 ipc_recv(int from, uint64 user_addr, int flags) {
   printf("ipc recv: %d wants to read from %d\n", myproc()->pid, from);
-  printf("requested user address to put msg in: %lx\n", user_addr);
   struct proc* p = myproc();
 
   acquire(&ipc_lock);
@@ -178,6 +183,12 @@ uint64 ipc_recv(int from, uint64 user_addr, int flags) {
   kernel_header.msgid = sender_node->msgid;
   kernel_header.msgtype = sender_node->msgtype;
   kernel_header.msglen = sender_node->msglen;
+
+  printf("=== ipc recv for %d from %d debug start === \n", p->pid, p->expected_src);
+  printf("msg id: %d\n", kernel_header.msgid);
+  printf("msg type: %d\n", kernel_header.msgtype);
+  printf("msg len: %d\n", kernel_header.msglen);
+  printf("=== debug ends === \n");
 
   // copy out header
   if(copyout(p->pagetable, user_addr, (char*)&kernel_header, sizeof(kernel_header)) < 0) {

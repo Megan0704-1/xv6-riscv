@@ -16,6 +16,7 @@
 #include "file.h"
 #include "fcntl.h"
 #include "buf.h" // [New]
+#include "sysfile.h"
 
 // Fetch the nth word-sized system call argument as a file descriptor
 // and return both the descriptor and the corresponding struct file.
@@ -554,3 +555,49 @@ sys_disk_write(void)
 
   return 0;
 }
+
+uint64
+sys_debug(void)
+{
+  int data = 0;
+  argint(0, &data);
+  printf("debug %d\n", data);
+  return 0;
+}
+
+// [New] sys_console_read
+uint64
+sys_console_read(void)
+{
+  int user_dst;
+  uint64 user_buffer;
+  int n;
+
+  argint(0, &user_dst);
+  argaddr(1, &user_buffer);
+  argint(2, &n);
+
+  int bytes = consoleread(user_dst, user_buffer, n);
+  if(bytes < 0) return -1;
+
+  return 0;
+}
+
+// [New] sys_console_write
+uint64
+sys_console_write(void)
+{
+  int user_src;
+  uint64 src;
+  int n;
+
+  argint(0, &user_src);
+  argaddr(1, &src);
+  argint(2, &n);
+
+  int ret = consolewrite(user_src, src, n);
+  if(ret < 0) return -1;
+
+  return 0;
+}
+
