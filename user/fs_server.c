@@ -21,77 +21,101 @@ static int fs_write(int pid, int fd, const char *src, int n);
 static int fs_close(int pid, int fd);
 static int fs_fstat(int pid, int fd, struct stat *st);
 static int fs_dup(int pid, int fd);
+static int fs_mknod(int pid, const char *path, short major, short minor);
 // static int fs_unlink(int pid, const char *path);
-// static int fs_chdir(int pid, const char *path);
 
 int main(void) {
+  register_service(FS_SERVER_NAME, getpid());
   fs_init();
   fs_ready = 1;
 
-  register_service(FS_SERVER_NAME, getpid());
-
   ServiceRequest fs_req;
-  ServiceReply fs_repl;
+  ServiceReply fs_repl; 
 
-  int income_pid = IPC_ANY_SENDER;
+  memset(&fs_req, 0, sizeof(fs_req));
+
   while(1) {
-    if(recv(income_pid, &fs_req, IPC_WAITING) < 0) {
-      continue;
+    fs_req.header.msgtype = 1;
+    fs_repl.header.msgtype = 0;
+
+    int recv_status = recv(IPC_ANY_SENDER, &fs_req, IPC_WAITING);
+    sleep(1);
+    if(recv_status < 0) {
+      return -1;
     }
 
     memset(&fs_repl, 0, sizeof(fs_repl));
-    fs_repl.status = 0;
+    fs_repl.repl.status = 0;
 
-    int sender_pid = fs_req.client_pid;
+    int sender_pid = fs_req.req.client_pid;
 
     // dispatch request
-    switch(fs_req.type) {
+    switch(fs_req.req.type) {
       case FS_OPEN: {
-        int fd = fs_open(sender_pid, fs_req.handle.fs_open.path, fs_req.handle.fs_open.omode);
+        char *path = fs_req.req.handle.fs_open.path;
+        int omode = fs_req.req.handle.fs_open.omode;
+        int fd = fs_open(sender_pid, path, omode);
+        // sanity
         if(fd < 0) {
-          fs_repl.status = -1;
+          fs_repl.repl.status = -1;
         } else {
-          fs_repl.handle.fs_open.fd = fd;
+          fs_repl.repl.handle.fs_open.fd = fd;
         }
         break;
       }
       case FS_READ: {
-        int byte = fs_read(sender_pid, fs_req.handle.fs_read.fh, fs_repl.handle.fs_read.data, fs_req.handle.fs_read.len);
+        int from_fd = fs_req.req.handle.fs_read.fh;
+        char *to_data = fs_repl.repl.handle.fs_read.data;
+        int len = fs_req.req.handle.fs_read.len;
+        int byte = fs_read(sender_pid, from_fd, to_data, len);
+        // sanity
         if(byte < 0) {
-          fs_repl.status = -1;
+          fs_repl.repl.status = -1;
         } else {
-          fs_repl.handle.fs_read.bytes = byte;
+          fs_repl.repl.handle.fs_read.bytes = byte;
         }
         break;
-                    }
+      }
       case FS_WRITE: {
-         int byte = fs_write(sender_pid, fs_req.handle.fs_write.fh, fs_req.handle.fs_write.data, fs_req.handle.fs_write.len);
-         if(byte < 0) {
-           fs_repl.status = -1;
-         } else {
-           fs_repl.handle.fs_write.bytes = byte;
-         }
-         break;
+        int to_fd = fs_req.req.handle.fs_write.fh;
+        char *from_data = fs_req.req.handle.fs_write.data;
+        int len = fs_req.req.handle.fs_write.len;
+        int byte = fs_write(sender_pid, to_fd, from_data, len);
+        // sanity
+        if(byte < 0) {
+          fs_repl.repl.status = -1;
+        } else {
+          fs_repl.repl.handle.fs_write.bytes = byte;
+        }
+        break;
       }
       case FS_CLOSE:
-        fs_repl.status = fs_close(sender_pid, fs_req.handle.fs_close.fh);
+        fs_repl.repl.status = fs_close(sender_pid, fs_req.req.handle.fs_close.fh);
         break;
       case FS_FSTAT:
-        fs_repl.status = fs_fstat(sender_pid, fs_req.handle.fs_fstat.fh, fs_repl.handle.fs_fstat.st);
+        fs_repl.repl.status = fs_fstat(sender_pid, fs_req.req.handle.fs_fstat.fh, &fs_repl.repl.handle.fs_fstat.st);
         break;
       case FS_DUP: {
-        int fd = fs_dup(sender_pid, fs_req.handle.fs_dup.fh);
+        int fd = fs_dup(sender_pid, fs_req.req.handle.fs_dup.fh);
         if(fd < 0) {
-          fs_repl.status = -1;
+          fs_repl.repl.status = -1;
         } else {
-          fs_repl.handle.fs_dup.fd = fd;
+          fs_repl.repl.handle.fs_dup.fd = fd;
         }
         break;
        }
+      case FS_MKNOD: {
+        const char *path = fs_req.req.handle.fs_mknod.path;
+        short major = fs_req.req.handle.fs_mknod.major;
+        short minor = fs_req.req.handle.fs_mknod.minor;
+        fs_repl.repl.status = fs_mknod(sender_pid, path, major, minor);
+        break;
+       }
       default:
-        fs_repl.status = -1;
+        fs_repl.repl.status = -1;
     }
     // send repl to req back to client
+    fs_repl.header.msglen = sizeof(fs_repl.repl);
     send(sender_pid, &fs_repl);
   }
 
@@ -119,6 +143,14 @@ static int fs_open(int pid, const char *path, int omode) {
       ip->ref --;
       return -1;
     }
+
+    // let device open succeed
+    if(ip->type == T_DEVICE) {
+      fd_table[pid][fd].type = FD_DEVICE;
+      fd_table[pid][fd].major = ip->major;
+    } else {
+      fd_table[pid][fd].type = FD_INODE;
+    }
   }
 
   // ip is now in memory
@@ -138,6 +170,10 @@ static int fs_read(int pid, int fd, char *dst, int n) {
   struct file *f = &fd_table[pid][fd];
   if(!f->readable) return -1;
 
+  if(f->type == FD_DEVICE) {
+    return fileread(f, (uint64)dst, n);
+  }
+
   struct inode *ip = f->ip;
   int r = readi(ip, dst, f->off, n);
 
@@ -150,10 +186,16 @@ static int fs_read(int pid, int fd, char *dst, int n) {
 
 // write data to open file from buffer
 static int fs_write(int pid, int fd, const char *src, int n) {
-  if(fd < 0 || fd >= NOFILE || fd_table[pid][fd].ref == 0) return -1;
+  if(fd < 0 || fd >= NOFILE || fd_table[pid][fd].ref == 0) {
+    return -1;
+  }
 
   struct file *f = &fd_table[pid][fd];
   if(!f->writable) return -1;
+
+  if(f->type == FD_DEVICE) {
+    return filewrite(f, (uint64)src, n);
+  }
   
   struct inode *ip = f->ip;
   int r = writei(ip, src, f->off, n);
@@ -238,3 +280,15 @@ static int fs_dup(int pid, int fh) {
   fd_table[pid][new_fd].ref++;
   return new_fd;
 }
+
+// create a file node at path
+static int fs_mknod(int pid, const char *path, short major, short minor) {
+  struct inode *ip;
+  ip = create(pid, path, T_DEVICE, major, minor);
+  CHECKIP(ip);
+
+  iupdate(ip);
+  ip->ref --;
+  return 0;
+}
+

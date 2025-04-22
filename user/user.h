@@ -35,10 +35,15 @@ int recv(int pid, void* msg, int flags); // [New] recv a msg from pid (or from a
 // service registry
 int register_service(const char*, int);
 int lookup_service(const char*);
+int debug(int);
 
 // disk
 int disk_read(int, void*);
 int disk_write(int, void*);
+
+// disk
+int console_read(int, uint64, int);
+int console_write(int, uint64, int);
 
 // ulib.c
 int stat(const char*, struct stat*);

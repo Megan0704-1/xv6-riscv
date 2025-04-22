@@ -16,7 +16,8 @@ main(void)
 {
   int pid, wpid;
 
-  if(fork() == 0) {
+  pid = fork();
+  if(pid == 0) {
     exec("fs_server", (char*[]){ "fs_server", 0 });
     exit(1);
   } 
@@ -25,12 +26,13 @@ main(void)
     sleep(1);
   }
 
-  if(open("console", O_RDWR) < 0){
+  int fd = open("console", O_RDWR);
+  if(fd < 0){
     mknod("console", CONSOLE, 0);
-    open("console", O_RDWR);
+    fd = open("console", O_RDWR);
   }
-  dup(0);  // stdout
-  dup(0);  // stderr
+  dup(fd);  // stdout
+  dup(fd);  // stderr
 
   for(;;){
     printf("init: starting sh\n");

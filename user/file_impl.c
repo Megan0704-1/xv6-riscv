@@ -20,6 +20,11 @@ fileinit(void)
 {
   for(int i = 0; i < NFILE; i++){
     ftable[i].ref = 0;
+    ftable[i].type = FD_NONE;
+    ftable[i].off = 0;
+    ftable[i].ip = 0;
+    ftable[i].readable = 0;
+    ftable[i].writable = 0;
   }
 }
 
@@ -30,6 +35,7 @@ filealloc(void)
   for(int i = 0; i < NFILE; i++){
     if(ftable[i].ref == 0){
       ftable[i].ref      = 1;
+      ftable[i].type = FD_NONE;
       ftable[i].off      = 0;
       ftable[i].ip       = 0;
       ftable[i].readable = 0;
@@ -45,7 +51,6 @@ struct file*
 filedup(struct file *f)
 {
   if(f->ref < 1){
-    printf("filedup: invalid ref %d\n", f->ref);
     exit(1);
   }
   f->ref++;
@@ -57,7 +62,6 @@ void
 fileclose(struct file *f)
 {
   if(f->ref < 1){
-    printf("fileclose: invalid ref %d\n", f->ref);
     exit(1);
   }
   if(--f->ref > 0)
@@ -72,6 +76,7 @@ fileclose(struct file *f)
   f->off      = 0;
   f->readable = 0;
   f->writable = 0;
+  f->type = FD_NONE;
 }
 
 // Get metadata about file f.
@@ -92,6 +97,12 @@ fileread(struct file *f, uint64 dst, int n)
 {
   if(!f->readable || n < 0) return -1;
 
+  if(f->type == FD_DEVICE) {
+    int m = f->major;
+    int r = devsw[m].read(0, dst, n); // 0: stdin
+    return r;
+  }
+
   int r = readi(f->ip, (char*)dst, f->off, n);
   if(r > 0)
     f->off += r;
@@ -104,6 +115,11 @@ filewrite(struct file *f, uint64 src, int n)
 {
   if(!f->writable || n < 0) return -1;
 
+  if(f->type == FD_DEVICE) {
+    int m = f->major;
+    int r = devsw[m].write(1, src, n); // 1: stdout
+    return r;
+  }
   int r = writei(f->ip, (const char*)src, f->off, n);
   if(r > 0)
     f->off += r;

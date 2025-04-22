@@ -21,23 +21,21 @@ static uchar free_bitmap[MAX_BMAP_BYTES];
 // Init fs
 void
 fs_init(void) {
+  fileinit();
   char buf[BSIZE]; 
   if(disk_read(1, buf) < 0) {
-    printf("fs_init: disk_read superblock failed\n");
     exit(1);
   }
 
   memmove(&sb, buf, sizeof(sb));
 
   if(sb.magic != FSMAGIC){
-    printf("fs_init: bad magic %x\n", sb.magic);
     exit(1);
   }
 
   uint n = NBMAP(sb);
   for(uint i=0; i<n; ++i) {
     if(disk_read(sb.bmapstart + i, buf) < 0) {
-      printf("fs_init: read bitmap failed.\n");
       exit(1);
     }
     memmove(free_bitmap + i*BSIZE, buf, BSIZE);
@@ -52,7 +50,6 @@ fs_init(void) {
   // set root dir as cur dir for all procs
   struct inode *root_ip = iget(ROOTDEV, ROOTINO);
   if(root_ip == 0) {
-    printf("fs_init: root indoe not found\n");
     exit(1);
   }
 
@@ -60,6 +57,10 @@ fs_init(void) {
     // note. fd 0,1,2 is reserved by console
     for(int fd=0; fd<3; ++fd) {
       fd_table[p][fd].ref += 1;
+      fd_table[p][fd].type = FD_DEVICE;
+      fd_table[p][fd].major = CONSOLE;
+      fd_table[p][fd].readable = 1;
+      fd_table[p][fd].writable = 1;
       fd_table[p][fd].ip=0;
     }
 
@@ -67,6 +68,7 @@ fs_init(void) {
     fd_table[p][0].ip = root_ip;
     root_ip->ref ++;
   }
+
 }
 
 // iget: get inode with num inum from disk (look up in icache)
@@ -85,7 +87,6 @@ iget(uint dev, uint inum)
   }
 
   if(empty == 0) {
-    printf("iget: no free inodes\n");
     return 0;
   }
 
@@ -97,7 +98,6 @@ iget(uint dev, uint inum)
   uint blkno = IBLOCK(inum, sb);
   char buf[BSIZE];
   if(disk_read(blkno, buf) < 0) {
-    printf("iget: disk_read error\n");
     empty->ref = 0;
     return 0;
   }
@@ -113,6 +113,7 @@ iget(uint dev, uint inum)
   empty->valid = 1;
 
   return empty;
+
 }
 
 // write modified inode back to device 
@@ -131,7 +132,6 @@ iupdate(struct inode *ip)
   uint blkno = IBLOCK(ip->inum, sb);
   uchar buf[BSIZE];
   if(disk_read(blkno, buf) < 0) {
-    printf("iupdate: disk_read failed\n");
     exit(1);
   }
 
@@ -140,7 +140,6 @@ iupdate(struct inode *ip)
   *dip = d;
 
   if(disk_write(blkno, buf) < 0) {
-    printf("iupdate: disk_write failed\n");
     exit(1);
   }
 }
@@ -162,7 +161,6 @@ balloc(uint dev)
           free_bitmap[off] |= (1<<bit); // mark as used
 
           if(disk_write(b, free_bitmap + off) < 0) {
-            printf("balloc: disk_write failed\n");
             exit(1);
           }
 
@@ -173,7 +171,6 @@ balloc(uint dev)
     }
   }
 
-  printf("balloc: out of blocks\n");
   return -1;
 }
 
@@ -191,7 +188,6 @@ bfree(uint dev, uint b)
   // write back to disk
   int dbmap_idx = BBLOCK(b, sb);
   if(disk_write(dbmap_idx, free_bitmap + (dbmap_idx-sb.bmapstart) * BSIZE) < 0) {
-    printf("bfree: write bitmap failed\n");
     exit(1);
   }
 }
@@ -243,7 +239,6 @@ int
 writei(struct inode *ip, const char *src, uint off, uint n) {
   if(off > ip->size || off + n < off) return -1;
   if(off + n > MAXFILE*BSIZE) {
-    printf("writei: exceeding max file size\n");
     return -1;
   }
 
@@ -342,7 +337,6 @@ int dirlink(struct inode *dp, const char *name, uint inum) {
   // Find an empty dirent
   for(off = 0; off < dp->size; off += sizeof(de)) {
     if(readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de)) {
-      printf("dirlink: read error\n");
       exit(1);
     }
     if(de.inum == 0) break;
@@ -353,7 +347,6 @@ int dirlink(struct inode *dp, const char *name, uint inum) {
   memset(de.name, 0, DIRSIZ);
   strcpy(de.name, name);
   if(writei(dp, (char*)&de, off, sizeof(de)) != sizeof(de)) {
-    printf("dirlink: write error\n");
     exit(1);
   }
   return 0;
@@ -366,21 +359,18 @@ int isdirempty(struct inode *dp) {
 
   // skip . entry
   if(readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de)) {
-    printf("isdirempty: read error");
     exit(1);
   }
   off += sizeof(de);
 
   // skip .. entry
   if(readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de)) {
-    printf("isdirempty: read error");
     exit(1);
   }
 
   off += sizeof(de);
   for(; off < dp->size; off += sizeof(de)) {
     if(readi(dp, (char*)&de, off, sizeof(de)) != sizeof(de)) {
-      printf("isdirempty: read error");
       exit(1);
     }
     if(de.inum != 0)
@@ -502,6 +492,7 @@ create(int pid, const char *path, short type, short major, short minor)
     dp->ref--;
     return 0;
   }
+  ip->type = type;
   ip->major = major;
   ip->minor = minor;
   ip->nlink = 1;
@@ -566,7 +557,6 @@ ialloc(uint dev, short type)
     }
   }
 
-  printf("ialloc: out of inodes\n");
   return 0;
 }
 

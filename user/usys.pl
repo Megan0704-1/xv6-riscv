@@ -25,7 +25,7 @@ entry("pipe");
 entry("kill");
 entry("exec");
 # entry("open");
-entry("mknod");
+# entry("mknod");
 entry("unlink");
 # entry("fstat");
 entry("link");
@@ -47,3 +47,8 @@ entry("lookup_service"); # [New] syscall stub for looking up PID of a server pro
 
 entry("disk_read");     # [New] syscall stub for disk read
 entry("disk_write");    # [New] syscall stub for disk write
+
+entry("debug");
+
+entry("console_read");
+entry("console_write");
