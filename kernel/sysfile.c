@@ -561,7 +561,19 @@ sys_debug(void)
 {
   int data = 0;
   argint(0, &data);
-  printf("debug %d\n", data);
+  printf("%d\n", data);
+  return 0;
+}
+
+// debug string
+uint64
+sys_debug_msg(void)
+{
+  char msg[BSIZE];
+  if (argstr(0, msg, BSIZE) < 0 ) {
+    return -1;
+  }
+  printf("%s\n", msg);
   return 0;
 }
 

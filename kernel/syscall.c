@@ -114,6 +114,7 @@ extern uint64 sys_disk_read(void);  // [New] declare sys_disk_read
 extern uint64 sys_disk_write(void); // [New] declare sys_disk_write
 
 extern uint64 sys_debug(void); // [New] for user space debugging
+extern uint64 sys_debug_msg(void); // [New] for user space debugging
                                
 extern uint64 sys_console_read(void); // [New] for reading from console
 extern uint64 sys_console_write(void); // [New] for writing to console
@@ -151,6 +152,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_disk_read]    sys_disk_read,  // [New] hook disk read syscall
 [SYS_disk_write]   sys_disk_write, // [New] hook disk write syscall
 [SYS_debug]   sys_debug,
+[SYS_debug_msg]   sys_debug_msg,
 [SYS_console_read]   sys_console_read,
 [SYS_console_write]   sys_console_write,
 };
