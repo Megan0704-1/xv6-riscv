@@ -87,6 +87,7 @@ iget(uint dev, uint inum)
   }
 
   if(empty == 0) {
+    debug_msg("should not reach here.");
     return 0;
   }
 
@@ -98,6 +99,7 @@ iget(uint dev, uint inum)
   uint blkno = IBLOCK(inum, sb);
   char buf[BSIZE];
   if(disk_read(blkno, buf) < 0) {
+    debug_msg("iget: disk_read failed");
     empty->ref = 0;
     return 0;
   }
@@ -132,6 +134,7 @@ iupdate(struct inode *ip)
   uint blkno = IBLOCK(ip->inum, sb);
   uchar buf[BSIZE];
   if(disk_read(blkno, buf) < 0) {
+    debug_msg("iupdate: disk_read failed\n");
     exit(1);
   }
 
@@ -140,6 +143,7 @@ iupdate(struct inode *ip)
   *dip = d;
 
   if(disk_write(blkno, buf) < 0) {
+    debug_msg("iupdate: disk_write failed\n");
     exit(1);
   }
 }
@@ -148,30 +152,39 @@ iupdate(struct inode *ip)
 int
 balloc(uint dev)
 {
-  // block iter
-  for(uint b = sb.bmapstart; b<sb.bmapstart + NBMAP(sb); ++b) {
-    uint off = (b - sb.bmapstart) * BSIZE;
-    int byte = free_bitmap[off];
+  // bitmap block is byte-address: 1024 byte per block
+  for(uint bmapBlk=0; bmapBlk<NBMAP(sb); ++bmapBlk) {
+    uint blkno = sb.bmapstart + bmapBlk;
+    uint blkoffBase = bmapBlk * BSIZE;
+    uchar *blkptr = free_bitmap + blkoffBase;
 
-    // at least one free bit
-    if(byte != 0xFF) {
+    // scan every byte in the bitmap blk
+    for(uint byteidx=0; byteidx < BSIZE; ++byteidx) {
+      int byte = blkptr[byteidx];
+      if(byte == 0xFF) {
+        // all bits in this byte are used
+        continue;
+      }
+
       for(int bit=0; bit<8; ++bit) {
-        if(!(byte & (1<<bit))) {
-          // free block found
-          free_bitmap[off] |= (1<<bit); // mark as used
+        if((byte & (1<<bit)) == 0) {
+          // mark bit as allocated
+          blkptr[byteidx] |= (1<<bit);
 
-          if(disk_write(b, free_bitmap + off) < 0) {
-            exit(1);
+          // write the slice back to disk
+          if(disk_write(blkno, blkptr) < 0) {
+            debug_msg("balloc: disk_write blk ptr failed\n");
+            return -1;
           }
 
-          uint blkloc = off * 8 + bit;
-          return blkloc;
+          // absolate data blk num
+          uint dataBlk = bmapBlk * BSIZE * 8 + byteidx * 8 + bit;
+          return dataBlk;
         }
       }
     }
   }
-
-  return -1;
+  return -1; // no free blk
 }
 
 // Free a disk block.
@@ -237,8 +250,12 @@ readi(struct inode *ip, char *dst, uint off, uint n)
 // write data to inode
 int
 writei(struct inode *ip, const char *src, uint off, uint n) {
-  if(off > ip->size || off + n < off) return -1;
+  if(off > ip->size || off + n < off) {
+    debug_msg("invalid offset\n");
+    return -1;
+  }
   if(off + n > MAXFILE*BSIZE) {
+    debug_msg("overflow\n");
     return -1;
   }
 
@@ -252,7 +269,11 @@ writei(struct inode *ip, const char *src, uint off, uint n) {
     if(blkno < NDIRECT) {
       if((addr = ip->addrs[blkno]) == 0) {
         addr = balloc(ip->dev);
-        if(addr < 0) return -1;
+        if(addr < 0)  {
+          debug_msg("address allocated by balloc is invalid\n");
+          debug(addr);
+          return -1;
+        }
         ip->addrs[blkno] = addr;
       }
     } else {
@@ -287,13 +308,27 @@ writei(struct inode *ip, const char *src, uint off, uint n) {
       if(addr == 0) {
         memset(buf, 0, BSIZE);
       } else {
-        if(disk_read(addr, buf) < 0) return -1;
+        if(disk_read(addr, buf) < 0) {
+          debug_msg("disk_read failed for writei\n");
+          debug_msg("addr");
+          debug(addr);
+          debug_msg("buf");
+          debug((uint64)buf);
+          return -1;
+        }
       }
     }
 
     // copy data to blk buffer and write to disk
     memmove(buf + blkoff, src + total_byte, towrite);
-    if(disk_write(addr, buf) < 0) return -1;
+    if(disk_write(addr, buf) < 0) {
+      debug_msg("disk_write failed for writei\n");
+      debug_msg("addr");
+      debug(addr);
+      debug_msg("buf");
+      debug((uint64)buf);
+      return -1;
+    }
 
     total_byte += towrite;
     off += towrite;
@@ -413,14 +448,18 @@ struct inode *namei_for_proc(int pid, const char *path) {
 
     // lookup name in cur dir
     if(ip->type != T_DIR) {
+      debug_msg("namei_for_proc: no file found under current path");
       ip->ref --;
+      debug_msg("namei_for_proc\n");
       return 0;
     }
 
     uint off=0;
     int inum = dirlookup(ip, name, &off);
     if(inum < 0) {
+      debug_msg("namei_for_proc: dir lookup not found for ip");
       ip->ref --;
+      debug_msg("namei_for_proc\n");
       return 0;
     }
 
@@ -428,6 +467,8 @@ struct inode *namei_for_proc(int pid, const char *path) {
     ip->ref--;
 
     if(next == 0) {
+      debug_msg("namei_for_proc: search exhausted");
+      debug_msg("namei_for_proc\n");
       return 0;
     }
 
@@ -469,6 +510,11 @@ create(int pid, const char *path, short type, short major, short minor)
   // find parent dir and final component
   struct inode *dp = nameiparent_for_proc(pid, path, name);
   if(dp == 0 || name[0] == 0 || dp->type != T_DIR) {
+    debug_msg("checking dp");
+    debug(dp->type);
+    debug(dp->inum);
+    debug(dp->ref);
+    sleep(20);
     if(dp) dp->ref --;
     return 0;
   }
@@ -480,8 +526,10 @@ create(int pid, const char *path, short type, short major, short minor)
   if(inum >= 0){
     ip = iget(dp->dev, inum);
     dp->ref--;
-    if(ip && ip->type == type)
+    if(ip && ip->type == type) {
+      debug_msg("find ip via dirlookup");
       return ip;
+    }
     if(ip) ip->ref--;
     return 0;
   }
@@ -489,6 +537,7 @@ create(int pid, const char *path, short type, short major, short minor)
   // allocate a fresh inode on disk
   ip = ialloc(dp->dev, type);
   if(ip == 0){
+    debug_msg("create: ialloc for ip failed\n");
     dp->ref--;
     return 0;
   }
@@ -516,6 +565,7 @@ create(int pid, const char *path, short type, short major, short minor)
 
   // add entry “name” -> inum into parent directory
   if(dirlink(dp, name, ip->inum) < 0){
+    debug_msg("create: dirlink failed\n");
     // roll back
     ip->nlink = 0;
     iupdate(ip);

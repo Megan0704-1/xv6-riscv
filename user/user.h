@@ -35,7 +35,9 @@ int recv(int pid, void* msg, int flags); // [New] recv a msg from pid (or from a
 // service registry
 int register_service(const char*, int);
 int lookup_service(const char*);
+
 int debug(int);
+int debug_msg(char*);
 
 // disk
 int disk_read(int, void*);

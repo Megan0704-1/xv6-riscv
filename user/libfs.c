@@ -17,7 +17,11 @@ static int get_fs_pid(void) {
 static int rpc_roundtrip(ServiceRequest *srq, ServiceReply *srp) {
   int fspid = get_fs_pid();
   int mypid = getpid();
-  if(mypid < 0) return -1;
+  if(mypid < 0) {
+    debug_msg("invalid mypid");
+    debug(mypid);
+    return -1;
+  }
 
   srq->req.client_pid = mypid;
   srq->header.msgid = sizeof(*srq);

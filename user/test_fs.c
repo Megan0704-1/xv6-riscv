@@ -15,6 +15,7 @@ int main(void) {
     printf("error: open for create failed\n");
   }
 
+  debug_msg("start fs_test:");
   const char *msg = "hello, Megan Kuo!\n";
   int len = strlen(msg);
   n = write(fd, msg, len);
@@ -22,6 +23,7 @@ int main(void) {
     printf("error: write failed, wrote %d bytes (expected %d)\n", n, len);
     exit(1);
   }
+  printf("FS_test: write success\n");
   close(fd);
 
   printf("FS test: read file and verify content\n");

@@ -49,6 +49,7 @@ entry("disk_read");     # [New] syscall stub for disk read
 entry("disk_write");    # [New] syscall stub for disk write
 
 entry("debug");
+entry("debug_msg");
 
 entry("console_read");
 entry("console_write");

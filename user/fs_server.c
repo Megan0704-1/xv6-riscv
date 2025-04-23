@@ -8,7 +8,10 @@
 #include "user/fcntl.h"
 
 #define CHECKIP(x) \
-  if(x == 0) return -1
+  if(x == 0) { \
+    debug_msg("invalid ip assigned!"); \
+    return -1;}
+
 
 // global vars
 static int fs_ready = 0;
@@ -128,7 +131,11 @@ static int fs_open(int pid, const char *path, int omode) {
   for(fd = 3; fd < NOFILE; ++fd) {
     if(fd_table[pid][fd].ref == 0) break;
   }
-  if(fd > NOFILE) return -1;
+  if(fd > NOFILE) {
+    debug_msg("fs_open: file handle exceeds max num");
+    debug_msg("fs_open\n");
+    return -1;
+  }
 
   struct inode *ip = 0;
   if(omode & O_CREATE /*0x200*/) {
@@ -140,6 +147,7 @@ static int fs_open(int pid, const char *path, int omode) {
 
     // try to write a dir
     if((ip->type == T_DIR) && ((omode & O_RDONLY) || (omode & O_RDWR))) {
+      debug_msg("fs_open: try to write to a dir");
       ip->ref --;
       return -1;
     }
@@ -192,10 +200,14 @@ static int fs_write(int pid, int fd, const char *src, int n) {
   }
 
   struct file *f = &fd_table[pid][fd];
-  if(!f->writable) return -1;
+  if(!f->writable) {
+    debug_msg("file not writable\n");
+    return -1;
+  }
 
   if(f->type == FD_DEVICE) {
-    return filewrite(f, (uint64)src, n);
+    int r = filewrite(f, (uint64)src, n);
+    return r;
   }
   
   struct inode *ip = f->ip;
