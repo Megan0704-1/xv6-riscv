@@ -580,7 +580,7 @@ sys_console_read(void)
   int bytes = consoleread(user_dst, user_buffer, n);
   if(bytes < 0) return -1;
 
-  return 0;
+  return bytes;
 }
 
 // [New] sys_console_write
@@ -598,6 +598,6 @@ sys_console_write(void)
   int ret = consolewrite(user_src, src, n);
   if(ret < 0) return -1;
 
-  return 0;
+  return ret;
 }
 

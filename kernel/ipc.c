@@ -16,7 +16,7 @@ extern struct spinlock ipc_lock;
 // sys_send helper
 uint64
 ipc_send(int dest_pid, uint64 user_addr) {
-  printf("ipc send: %d request to send to %d\n", myproc()->pid, dest_pid);
+  // printf("ipc send: %d request to send to %d\n", myproc()->pid, dest_pid);
   struct proc* p = myproc();
 
   // lookup destination pid
@@ -30,7 +30,7 @@ ipc_send(int dest_pid, uint64 user_addr) {
   }
 
   if((dest_p == 0) || (dest_p == p)) {
-    printf("ipc_send: sending to invalid dest (self / 0)\n");
+    // printf("ipc_send: sending to invalid dest (self / 0)\n");
     release(&ipc_lock);
     return -1;
   }
@@ -52,11 +52,13 @@ ipc_send(int dest_pid, uint64 user_addr) {
   int msgtype = kernel_header.msgtype;
   int msglen = kernel_header.msglen;
 
+  /*
   printf("=== ipc send for %d to %d debug start === \n", p->pid, dest_p->pid);
   printf("msg id: %d\n", kernel_header.msgid);
   printf("msg type: %d\n", kernel_header.msgtype);
   printf("msg len: %d\n", kernel_header.msglen);
   printf("=== debug ends === \n");
+  */
 
   // enforce msg len to be within max payload size
   if((msglen < 0) || (msglen > IPC_MAX_PAYLOAD)) {
@@ -128,7 +130,7 @@ ipc_send(int dest_pid, uint64 user_addr) {
 
 // sys_recv helper
 uint64 ipc_recv(int from, uint64 user_addr, int flags) {
-  printf("ipc recv: %d wants to read from %d\n", myproc()->pid, from);
+  // printf("ipc recv: %d wants to read from %d\n", myproc()->pid, from);
   struct proc* p = myproc();
 
   acquire(&ipc_lock);
@@ -160,11 +162,11 @@ uint64 ipc_recv(int from, uint64 user_addr, int flags) {
     // block current process until msg arrives
     p->ipc_flags = IPC_WAITING;
     p->expected_src = from;
-    printf("sleeps %d\n", p->pid);
+    // printf("sleeps %d\n", p->pid);
     sleep(p, &ipc_lock);
   }
 
-  printf("wakes %d\n", p->pid);
+  // printf("wakes %d\n", p->pid);
   // sender msg exist in recver msg queue
   if(prev_node) {
     prev_node->next = sender_node->next;
@@ -184,11 +186,13 @@ uint64 ipc_recv(int from, uint64 user_addr, int flags) {
   kernel_header.msgtype = sender_node->msgtype;
   kernel_header.msglen = sender_node->msglen;
 
+  /*
   printf("=== ipc recv for %d from %d debug start === \n", p->pid, p->expected_src);
   printf("msg id: %d\n", kernel_header.msgid);
   printf("msg type: %d\n", kernel_header.msgtype);
   printf("msg len: %d\n", kernel_header.msglen);
   printf("=== debug ends === \n");
+  */
 
   // copy out header
   if(copyout(p->pagetable, user_addr, (char*)&kernel_header, sizeof(kernel_header)) < 0) {
