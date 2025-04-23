@@ -58,6 +58,7 @@ int read(int fd, void *buf, int n) {
     }
 
     int read_bytes = srp.repl.handle.fs_read.bytes;
+
     if(read_bytes > 0) {
       memmove(buffer, srp.repl.handle.fs_read.data, read_bytes);
       buffer += read_bytes;
@@ -65,6 +66,7 @@ int read(int fd, void *buf, int n) {
     }
     if(read_bytes < chunk) break; // fewer bytes than requested
   }
+
   return total;
 }
 

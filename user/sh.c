@@ -137,8 +137,10 @@ getcmd(char *buf, int nbuf)
   write(2, "$ ", 2);
   memset(buf, 0, nbuf);
   gets(buf, nbuf);
-  if(buf[0] == 0) // EOF
+  if(buf[0] == 0) {
+    debug(-1);
     return -1;
+  }
   return 0;
 }
 

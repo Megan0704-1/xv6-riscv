@@ -171,7 +171,8 @@ static int fs_read(int pid, int fd, char *dst, int n) {
   if(!f->readable) return -1;
 
   if(f->type == FD_DEVICE) {
-    return fileread(f, (uint64)dst, n);
+    int r = fileread(f, (uint64)dst, n);
+    return r;
   }
 
   struct inode *ip = f->ip;

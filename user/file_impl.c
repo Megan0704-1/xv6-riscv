@@ -99,7 +99,7 @@ fileread(struct file *f, uint64 dst, int n)
 
   if(f->type == FD_DEVICE) {
     int m = f->major;
-    int r = devsw[m].read(0, dst, n); // 0: stdin
+    int r = devsw[m].read(1, dst, n); // 1 user
     return r;
   }
 
